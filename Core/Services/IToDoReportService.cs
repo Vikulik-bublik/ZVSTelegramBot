@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ConsoleBot.Core.Services
+namespace ZVSTelegramBot.Core.Services
 {
     public interface IToDoReportService
     {

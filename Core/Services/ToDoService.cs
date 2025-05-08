@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ConsoleBot.Core.Entities;
-using ConsoleBot.Core.Exceptions;
-using ConsoleBot.Core.DataAccess;
+using ZVSTelegramBot.Core.Exceptions;
+using ZVSTelegramBot.Core.Entities;
+using ZVSTelegramBot.Core.DataAccess;
 
-namespace ConsoleBot.Core.Services
+namespace ZVSTelegramBot.Core.Services
 {
     public class ToDoService : IToDoService
     {

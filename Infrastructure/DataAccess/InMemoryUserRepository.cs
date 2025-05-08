@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ConsoleBot.Core.DataAccess;
-using ConsoleBot.Core.Entities;
+using ZVSTelegramBot.Core.DataAccess;
+using ZVSTelegramBot.Core.Entities;
 
-namespace ConsoleBot.Infrastructure.DataAccess
+namespace ZVSTelegramBot.Infrastructure.DataAccess
 {
     public class InMemoryUserRepository : IUserRepository
     {
