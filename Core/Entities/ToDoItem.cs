@@ -11,7 +11,6 @@ namespace ZVSTelegramBot.Core.Entities
         Active,
         Completed
     }
-
     public class ToDoItem
     {
         public Guid Id { get; set; }
@@ -21,5 +20,4 @@ namespace ZVSTelegramBot.Core.Entities
         public ToDoItemState State { get; set; }
         public DateTime? StateChangedAt { get; set; }
     }
-
 }

@@ -12,12 +12,10 @@ namespace ZVSTelegramBot.Core.Services
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
-
         public UserService(IUserRepository userRepository)
         {
             _userRepository = userRepository;
         }
-
         public async Task<ToDoUser> RegisterUser(long telegramUserId, string telegramUserName, CancellationToken ct)
         {
             var user = new ToDoUser
@@ -30,10 +28,13 @@ namespace ZVSTelegramBot.Core.Services
             await _userRepository.Add(user, ct);
             return user;
         }
-
         public async Task<ToDoUser?> GetUser(long telegramUserId, CancellationToken ct)
         {
             return await _userRepository.GetUserByTelegramUserId(telegramUserId, ct);
+        }
+        public async Task UpdateUser(ToDoUser user, CancellationToken ct)
+        {
+            await _userRepository.UpdateUser(user, ct);
         }
     }
 }
