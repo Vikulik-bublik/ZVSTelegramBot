@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ConsoleBot.Core.Entities;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using ZVSTelegramBot.Core.Entities;
 
-namespace ConsoleBot.Core.Services
+namespace ZVSTelegramBot.Core.Services
 {
     public interface IToDoService
     {

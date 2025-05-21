@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using ConsoleBot.Core.DataAccess;
-using ConsoleBot.Core.Entities;
+using ZVSTelegramBot.Core.DataAccess;
+using ZVSTelegramBot.Core.Entities;
 
-namespace ConsoleBot.Core.Services
+namespace ZVSTelegramBot.Core.Services
 {
     public class UserService : IUserService
     {

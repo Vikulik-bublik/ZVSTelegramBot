@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ConsoleBot.Core.Entities
+namespace ZVSTelegramBot.Core.Entities
 
 {
     public class ToDoUser

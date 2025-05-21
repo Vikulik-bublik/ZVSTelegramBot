@@ -11,7 +11,7 @@ public static class Helper
         try
         {
             MaxTaskCount = await ParseAndValidateInt(input, min: 1, max: 100, ct);
-            await botClient.SendMessage(update.Message.Chat, $"Максимальное число задач установлено: {MaxTaskCount}.", ct);
+            await botClient.SendMessage(update.Message.Chat, $"Максимальное число задач установлено: {MaxTaskCount}.", cancellationToken: ct);
         }
         catch (ArgumentException ex)
         {
@@ -24,7 +24,7 @@ public static class Helper
         try
         {
             MaxLengthCount = await ParseAndValidateInt(input, min: 1, max: 100, ct);
-            await botClient.SendMessage(update.Message.Chat, $"Максимальная длина задач установлена на количество символов: {MaxLengthCount}.", ct);
+            await botClient.SendMessage(update.Message.Chat, $"Максимальная длина задач установлена на количество символов: {MaxLengthCount}.", cancellationToken: ct);
         }
         catch (ArgumentException ex)
         {

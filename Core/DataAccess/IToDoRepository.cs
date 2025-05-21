@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ConsoleBot.Core.Entities;
+using ZVSTelegramBot.Core.Entities;
 
-namespace ConsoleBot.Core.DataAccess
+namespace ZVSTelegramBot.Core.DataAccess
 {
     public interface IToDoRepository
     {
