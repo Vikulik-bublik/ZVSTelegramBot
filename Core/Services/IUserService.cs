@@ -11,5 +11,6 @@ namespace ZVSTelegramBot.Core.Services
     {
         Task<ToDoUser> RegisterUser(long telegramUserId, string telegramUserName, CancellationToken ct);
         Task<ToDoUser?> GetUser(long telegramUserId, CancellationToken ct);
+        Task UpdateUser(ToDoUser user, CancellationToken ct);
     }
 }
