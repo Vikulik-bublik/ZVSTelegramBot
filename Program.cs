@@ -53,28 +53,7 @@ namespace ZVSTelegramBot
             try
             {
                 await botClient.SetMyCommands(commands, cancellationToken: cts.Token);
-                //потуги сделать отдельную клавиатуру для дополняемых команд
-                //var commandKeyboard = new ReplyKeyboardMarkup(new[]
-                //{
-                //    new[]
-                //    {
-                //        new KeyboardButton("/addtask"),
-                //        new KeyboardButton("/removetask")
-                        
-                //    },
-                //    new[]
-                //    {
-                //        new KeyboardButton("/completetask"),
-                //        new KeyboardButton("/find")
-                //    },
-                //})
-                //{
-                //    ResizeKeyboard = true,
-                //    OneTimeKeyboard = false,
-                //    Selective = true,
-                //    InputFieldPlaceholder = "Выберите команду или введите текст"
-                //};
-                //handler.SetCommandKeyboard(commandKeyboard);
+                
                 //подписываемся
                 handler.OnHandleUpdateStarted += message =>
                     Console.WriteLine($"Началась обработка сообщения '{message}'.");

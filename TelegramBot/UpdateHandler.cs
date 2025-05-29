@@ -14,6 +14,7 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using System.Reflection;
 
 namespace ZVSTelegramBot.TelegramBot
 {
@@ -25,13 +26,7 @@ namespace ZVSTelegramBot.TelegramBot
         private readonly IUserService _userService;
         private readonly IToDoService _toDoService;
         private readonly IToDoReportService _reportService;
-        //потуги сделать отдельную клавиатуру для дополняемых команд
-        //private ReplyKeyboardMarkup _commandKeyboard;
-        //private readonly HashSet<string> _partialCommands = new() { "/addtask", "/removetask", "/completetask", "/find" };
-        //public void SetCommandKeyboard(ReplyKeyboardMarkup keyboard)
-        //{
-        //    _commandKeyboard = keyboard;
-        //}
+        
         public UpdateHandler(IUserService userService, IToDoService toDoService, IToDoReportService reportService)
         {
             _userService = userService;
@@ -51,12 +46,7 @@ namespace ZVSTelegramBot.TelegramBot
             var telegramUserName = update.Message.From.Username;
             var command = update.Message.Text.Split(' ')[0];
             OnHandleUpdateStarted?.Invoke(command);
-            //обработка нажатия на кнопку команды
-            //if (update.Message?.Text != null && _partialCommands.Contains(command))
-            //{
-            //    await HandleCommandButtonClick(botClient, update.Message, ct);
-            //    return;
-            //}
+            
             try
             {
                 var user = await _userService.GetUser(telegramUserId, ct);
@@ -189,24 +179,7 @@ namespace ZVSTelegramBot.TelegramBot
                 OneTimeKeyboard = false
             };
         }
-        //private async Task HandleCommandButtonClick(ITelegramBotClient botClient, Message message, CancellationToken ct)
-        //{
-        //    var command = message.Text.Trim();
-        //    var helpText = command switch
-        //    {
-        //        "/addtask" => "Введите имя задачи после команды",
-        //        "/removetask" => "Введите порядковый номер задачи для удаления",
-        //        "/completetask" => "Введите ID задачи для завершения",
-        //        "/find" => "Введите начало названия задачи",
-        //        _ => "Дополните команду и отправьте"
-        //    };
-        //        await botClient.SendMessage(
-        //        chatId: message.Chat.Id,
-        //        text: $"{helpText}:\n<code>{command} </code>",
-        //        parseMode: ParseMode.Html,
-        //        replyMarkup: new ForceReplyMarkup { InputFieldPlaceholder = $"{command} ..." },
-        //        cancellationToken: ct);
-        //}
+        
         //метод обработки команды start
         private async Task Start(ITelegramBotClient botClient, ToDoUser? user, Update update, CancellationToken ct)
         {
@@ -354,16 +327,20 @@ namespace ZVSTelegramBot.TelegramBot
                 await botClient.SendMessage(update.Message.Chat, "После команды необходимо указать имя задачи", cancellationToken: ct);
             }
         }
+
         //удаляем задачу по ее порядковому номеру
         private async Task RemoveTask(ITelegramBotClient botClient, Guid userId, Update update, CancellationToken ct)
         {
             var input = update.Message.Text.Substring(11).Trim();
-            if (!int.TryParse(input, out int taskNumber))
+            if (!int.TryParse(input, out int taskNumber) || taskNumber < 1)
             {
-                await botClient.SendMessage(update.Message.Chat, "После команды необходимо указать порядковый номер задачи,", cancellationToken: ct);
+                await botClient.SendMessage(update.Message.Chat, "После команды необходимо указать порядковый номер задачи, начиная с 1", cancellationToken: ct);
                 return;
             }
-            var allTasks = (await _toDoService.GetAllTasks(userId, ct)).OrderBy(t => t.CreatedAt).ToList();
+            var allTasks = (await _toDoService.GetActiveByUserId(userId, ct))
+                .OrderBy(t => t.CreatedAt).
+                ToList();
+
             if (taskNumber > allTasks.Count)
             {
                 var message = allTasks.Count == 0
@@ -373,7 +350,7 @@ namespace ZVSTelegramBot.TelegramBot
                 return;
             }
             var taskToRemove = allTasks[taskNumber - 1];
-            await _toDoService.Delete(userId, taskToRemove.Id, ct);
+            await _toDoService.Delete(taskToRemove.Id, ct);
             await botClient.SendMessage(update.Message.Chat, $"Задача `{EscapeMarkdownV2(taskToRemove.Name)}` успешно удалена", replyMarkup: GetAuthorizedKeyboard(),  parseMode: ParseMode.MarkdownV2, cancellationToken: ct);
         }
         //показываем активные задачи
@@ -381,9 +358,11 @@ namespace ZVSTelegramBot.TelegramBot
         {
             if (update.Message is not { } message)
                 return;
-            var tasks = await _toDoService.GetActiveByUserId(userId, ct);
-            var taskList = string.Join(Environment.NewLine, tasks.Select(t =>
-                $"\nЗадача: `{EscapeMarkdownV2(t.Name)}`" +
+            var tasks = (await _toDoService.GetActiveByUserId(userId, ct))
+            .OrderBy(t => t.CreatedAt)
+            .ToList();
+            var taskList = string.Join(Environment.NewLine, tasks.Select((t, index) =>
+                $"\nЗадача *{index + 1}*: `{EscapeMarkdownV2(t.Name)}`" +
                 $"\nВремя создания задачи: {EscapeMarkdownV2(t.CreatedAt.ToString("dd:MM:yyyy HH:mm:ss"))}" +
                 $"\nID задачи: `{EscapeMarkdownV2(t.Id.ToString())}`"
             ));
@@ -429,9 +408,11 @@ namespace ZVSTelegramBot.TelegramBot
                 await botClient.SendMessage(update.Message.Chat, "Пользователь не найден", cancellationToken: ct);
                 return;
             }
-            var allTasks = await _toDoService.GetAllTasks(user.UserId, ct);
-            var allTaskList = string.Join(Environment.NewLine, allTasks.Select(t =>
-               $"\nЗадача: `{EscapeMarkdownV2(t.Name)}`, статус: {EscapeMarkdownV2(t.State.ToString())}" +
+            var allTasks = (await _toDoService.GetAllTasks(user.UserId, ct))
+                .OrderBy(t => t.CreatedAt)
+                .ToList();
+            var allTaskList = string.Join(Environment.NewLine, allTasks.Select((t, index) =>
+               $"\nЗадача *{index + 1}*: `{EscapeMarkdownV2(t.Name)}`, статус: {EscapeMarkdownV2(t.State.ToString())}" +
                $"\nВремя создания задачи: {EscapeMarkdownV2(t.CreatedAt.ToString("dd:MM:yyyy HH:mm:ss"))}" +
                $"\nID задачи: `{EscapeMarkdownV2(t.Id.ToString())}`"
            ));

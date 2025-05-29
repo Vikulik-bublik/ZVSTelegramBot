@@ -60,12 +60,12 @@ namespace ZVSTelegramBot.Core.Services
                 await _toDoRepository.Update(item, ct);
             }
         }
-        public async Task Delete(Guid userId, Guid taskId, CancellationToken ct)
+        public async Task Delete(Guid id, CancellationToken ct)
         {
-            var task = await _toDoRepository.GetByIdAsync(userId, taskId, ct);
+            var task = await _toDoRepository.GetByIdAsync(id, ct);
             if (task == null)
-                throw new TaskNotFoundException(taskId);
-            await _toDoRepository.Delete(userId, taskId, ct);
+                throw new TaskNotFoundException(id);
+            await _toDoRepository.Delete(id, ct);
         }
         public async Task<IReadOnlyList<ToDoItem>> GetAllTasks(Guid userId, CancellationToken ct)
         {

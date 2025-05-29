@@ -18,6 +18,7 @@ namespace ZVSTelegramBot.Infrastructure.DataAccess
         private readonly string _indexFilePath;
         private readonly JsonSerializerOptions _jsonOptions;
         private Dictionary<Guid, Guid> _taskToUserIndex;
+        private readonly object _syncRoot = new object();
         public FileToDoRepository(string baseStoragePath)
         {
             _baseStoragePath = baseStoragePath ?? throw new ArgumentNullException(nameof(baseStoragePath));
@@ -118,16 +119,17 @@ namespace ZVSTelegramBot.Infrastructure.DataAccess
                 throw new ArgumentException("Пользователь не найден");
             var userId = item.User.UserId;
             var taskId = item.Id;
-            EnsureUserDirectoryExists(userId);
-            var filePath = GetTaskFilePath(userId, taskId);
-            await using (var fileStream = File.Create(filePath))
+            lock (_syncRoot)
             {
-                await JsonSerializer.SerializeAsync(fileStream, item, _jsonOptions, ct);
-            }
-            lock (_taskToUserIndex)
-            {
+                EnsureUserDirectoryExists(userId);
+                var filePath = GetTaskFilePath(userId, taskId);
                 _taskToUserIndex[taskId] = userId;
                 SaveIndex();
+            }
+
+            await using (var fileStream = File.Create(GetTaskFilePath(userId, taskId)))
+            {
+                await JsonSerializer.SerializeAsync(fileStream, item, _jsonOptions, ct);
             }
         }
         public async Task Update(ToDoItem item, CancellationToken ct)
@@ -138,20 +140,31 @@ namespace ZVSTelegramBot.Infrastructure.DataAccess
             var filePath = GetTaskFilePath(item.User.UserId, item.Id);
             if (!File.Exists(filePath))
                 throw new TaskNotFoundException(item.Id);
-                await using var fileStream = File.Create(filePath);
-                await JsonSerializer.SerializeAsync(fileStream, item, _jsonOptions, ct);
-        }
-        public async Task Delete(Guid userId, Guid taskId, CancellationToken ct)
-        {
-            string filePath = GetTaskFilePath(userId, taskId);
-            lock (_taskToUserIndex)
+
+            await using (var fileStream = File.Create(filePath))
             {
-                if (!_taskToUserIndex.TryGetValue(taskId, out var actualUserId) || actualUserId != userId)
-                    throw new TaskNotFoundException(taskId);
-                _taskToUserIndex.Remove(taskId);
+                await JsonSerializer.SerializeAsync(fileStream, item, _jsonOptions, ct);
+            }
+        }
+        public async Task Delete(Guid id, CancellationToken ct)
+        {
+            var task = await GetByIdAsync(id, ct);
+            if (task == null)
+                throw new TaskNotFoundException(id);
+
+            string filePath;
+            lock (_syncRoot)
+            {
+                if (!_taskToUserIndex.TryGetValue(id, out var userId))
+                    throw new TaskNotFoundException(id);
+                filePath = Path.Combine(GetUserDirectoryPath(userId), $"{id}.json");
+                _taskToUserIndex.Remove(id);
                 SaveIndex();
             }
-            await Task.Run(() => File.Delete(filePath), ct);
+                if (File.Exists(filePath))
+                {
+                    await Task.Run(() => File.Delete(filePath), ct);
+                }
         }
         public async Task<bool> ExistsByName(Guid userId, string name, CancellationToken ct)
         {
@@ -163,13 +176,25 @@ namespace ZVSTelegramBot.Infrastructure.DataAccess
             var allTasks = await GetAllByUserId(userId, ct);
             return allTasks.Count(t => t.State == ToDoItemState.Active);
         }
-        public async Task<ToDoItem?> GetByIdAsync(Guid userId, Guid id, CancellationToken ct)
+        public async Task<ToDoItem?> GetByIdAsync(Guid id, CancellationToken ct)
         {
-            var filePath = GetTaskFilePath(userId, id);
+            string filePath;
+            lock (_syncRoot)
+            {
+                filePath = GetTaskFilePath(id);
+            }
+
             if (!File.Exists(filePath))
                 return null;
-                await using var fileStream = File.OpenRead(filePath);
-                return await JsonSerializer.DeserializeAsync<ToDoItem>(fileStream, _jsonOptions, ct);
+
+            await using var fileStream = File.OpenRead(filePath);
+            return await JsonSerializer.DeserializeAsync<ToDoItem>(fileStream, _jsonOptions, ct);
+        }
+        private string GetTaskFilePath(Guid taskId)
+        {
+            if (!_taskToUserIndex.TryGetValue(taskId, out var userId))
+                throw new TaskNotFoundException(taskId);
+            return Path.Combine(GetUserDirectoryPath(userId), $"{taskId}.json");
         }
     }
 }

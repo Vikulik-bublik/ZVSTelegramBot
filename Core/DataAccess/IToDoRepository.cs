@@ -14,9 +14,9 @@ namespace ZVSTelegramBot.Core.DataAccess
         Task<IReadOnlyList<ToDoItem>> Find(Guid userId, Func<ToDoItem, bool> predicate, CancellationToken ct);
         Task Add(ToDoItem item, CancellationToken ct);
         Task Update(ToDoItem item, CancellationToken ct);
-        Task Delete(Guid userId, Guid id, CancellationToken ct);
+        Task Delete(Guid id, CancellationToken ct);
         Task<bool> ExistsByName(Guid userId, string name, CancellationToken ct);
         Task<int> CountActive(Guid userId, CancellationToken ct);
-        Task<ToDoItem?> GetByIdAsync(Guid userId, Guid id, CancellationToken ct);
+        Task<ToDoItem?> GetByIdAsync(Guid id, CancellationToken ct);
     }
 }
