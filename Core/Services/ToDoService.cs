@@ -32,10 +32,10 @@ namespace ZVSTelegramBot.Core.Services
 
             Helper.ValidateString(name, ct);
             name = name.Trim();
-            if (name.Length > user.MaxLengthCount)
-                throw new TaskLengthLimitException(user.MaxLengthCount);
-            if (await _toDoRepository.CountActive(user.UserId, ct) >= user.MaxTaskCount)
-                throw new TaskCountLimitException(user.MaxTaskCount);
+            //if (name.Length > user.MaxLengthCount)
+            //    throw new TaskLengthLimitException(user.MaxLengthCount);
+            //if (await _toDoRepository.CountActive(user.UserId, ct) >= user.MaxTaskCount)
+            //    throw new TaskCountLimitException(user.MaxTaskCount);
             if (await _toDoRepository.ExistsByName(user.UserId, name, ct))
                 throw new DuplicateTaskException(name);
             var item = new ToDoItem
