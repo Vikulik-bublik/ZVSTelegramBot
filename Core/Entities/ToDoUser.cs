@@ -15,8 +15,8 @@ namespace ZVSTelegramBot.Core.Entities
         public DateTime RegisteredAt { get; set; }
         public bool WaitingForMaxTaskCount { get; set; } = false; //для проверки состояния
         public bool WaitingForMaxLengthCount { get; set; } = false; //для проверки состояния
-        public bool WaitingForConfigReset { get; set; }
-        public int MaxTaskCount { get; set; } = 10;
-        public int MaxLengthCount { get; set; } = 100;
+        //public bool WaitingForConfigReset { get; set; } //для сброса состояния
+        //public int MaxTaskCount { get; set; }
+        //public int MaxLengthCount { get; set; }
     }
 }
