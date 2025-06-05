@@ -6,6 +6,7 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 
 namespace ZVSTelegramBot
@@ -14,8 +15,10 @@ namespace ZVSTelegramBot
     {
         public static async Task Main(string[] args)
         {
-            var userRepository = new InMemoryUserRepository();
-            var toDoRepository = new InMemoryToDoRepository();
+            var usersStoragePath = Path.Combine(Environment.CurrentDirectory, "Users");
+            var userRepository = new FileUserRepository(usersStoragePath);
+            var storagePath = Path.Combine(Environment.CurrentDirectory, "ToDoItems");
+            var toDoRepository = new FileToDoRepository(storagePath);
             var reportService = new ToDoReportService(toDoRepository);
             var userService = new UserService(userRepository);
             var toDoService = new ToDoService(toDoRepository);
@@ -36,30 +39,26 @@ namespace ZVSTelegramBot
             //меню команд
             var commands = new List<BotCommand>
             {
-                new() { Command = "start", Description = "Начать работу с ботом" },
-                //new() { Command = "addtask", Description = "Добавление задачи" },
-                //new() { Command = "removetask", Description = "Удаление задачи" },
-                //new() { Command = "completetask", Description = "Отметить задачу выполненной" },
+                new() { Command = "start", Description = "Начать работу с ботом/заново установить лимиты для задач" },
+                new() { Command = "addtask", Description = "Добавление задачи" },
+                new() { Command = "removetask", Description = "Удаление задачи" },
+                new() { Command = "completetask", Description = "Отметить задачу выполненной" },
                 new() { Command = "showtasks", Description = "Показать активные задачи" },
                 new() { Command = "showalltasks", Description = "Показать все задачи" },
                 new() { Command = "report", Description = "Статистика по задачам" },
-                //new() { Command = "find", Description = "Поиск задачи по префиксу" },
+                new() { Command = "find", Description = "Поиск задачи по префиксу" },
                 new() { Command = "help", Description = "Помощь по командам" },
                 new() { Command = "info", Description = "Информация о боте" }
             };
             try
             {
-                await botClient.SetMyCommands(
-                commands: commands,
-                cancellationToken: cts.Token);
-
+                await botClient.SetMyCommands(commands, cancellationToken: cts.Token);
+                
                 //подписываемся
                 handler.OnHandleUpdateStarted += message =>
                     Console.WriteLine($"Началась обработка сообщения '{message}'.");
                 handler.OnHandleUpdateCompleted += message =>
                     Console.WriteLine($"Закончилась обработка сообщения '{message}'.");
-
-           
                 botClient.StartReceiving(handler, receiverOptions, cts.Token);
                 var me = await botClient.GetMe(cts.Token);
                 Console.WriteLine($"{me.FirstName} запущен!");
@@ -72,9 +71,8 @@ namespace ZVSTelegramBot
                         cts.Cancel();
                         break;
                     }
-                    await Task.Delay(-1); // Устанавливаем бесконечную задержку
+                    await Task.Delay(-1);
                 }
-                
             }
             catch (OperationCanceledException)
             {

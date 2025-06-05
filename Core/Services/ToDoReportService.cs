@@ -11,12 +11,10 @@ namespace ZVSTelegramBot.Core.Services
     public class ToDoReportService : IToDoReportService
     {
         private readonly IToDoRepository _toDoRepository;
-
         public ToDoReportService(IToDoRepository toDoRepository)
         {
             _toDoRepository = toDoRepository;
         }
-
         public async Task<(int total, int completed, int active, DateTime generatedAt)> GetUserStats(Guid userId, CancellationToken ct)
         {
             var tasks = await _toDoRepository.GetAllByUserId(userId, ct);
