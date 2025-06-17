@@ -11,14 +11,6 @@ namespace ZVSTelegramBot.Core.Exceptions
         public RepositoryException(string message) : base(message) { }
         public RepositoryException(string message, Exception inner) : base(message, inner) { }
     }
-    //public class TaskCountLimitException : Exception
-    //{
-    //    public TaskCountLimitException(int MaxTaskCount) : base($"Максимальное количество задач - {MaxTaskCount}, вы можете воспользоваться командой /removetask <номер задачи>") { }
-    //}
-    //public class TaskLengthLimitException : Exception
-    //{
-    //    public TaskLengthLimitException(int MaxLengthCount) : base($"Максимальная длина задачи - {MaxLengthCount}") { }
-    //}
     public class DuplicateTaskException : Exception
     {
         public DuplicateTaskException(string task) : base($"Задача - {task} уже существует") { }

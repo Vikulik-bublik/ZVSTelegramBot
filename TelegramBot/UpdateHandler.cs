@@ -1,20 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using System.Numerics;
-using System.Diagnostics;
+using Telegram.Bot;
+using Telegram.Bot.Polling;
+using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 using ZVSTelegramBot.Core.Entities;
 using ZVSTelegramBot.Core.Exceptions;
 using ZVSTelegramBot.Core.Services;
-using Telegram.Bot;
-using Telegram.Bot.Types;
-using Telegram.Bot.Polling;
-using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.ReplyMarkups;
-using System.Reflection;
+using ZVSTelegramBot.Scenarios;
 
 namespace ZVSTelegramBot.TelegramBot
 {
@@ -26,12 +27,16 @@ namespace ZVSTelegramBot.TelegramBot
         private readonly IUserService _userService;
         private readonly IToDoService _toDoService;
         private readonly IToDoReportService _reportService;
-        
-        public UpdateHandler(IUserService userService, IToDoService toDoService, IToDoReportService reportService)
+        private readonly IEnumerable<IScenario> _scenarios;
+        private readonly IScenarioContextRepository _contextRepository;
+
+        public UpdateHandler(IUserService userService, IToDoService toDoService, IToDoReportService reportService, IEnumerable<IScenario> scenarios, IScenarioContextRepository contextRepository)
         {
             _userService = userService;
             _toDoService = toDoService;
             _reportService = reportService;
+            _scenarios = scenarios;
+            _contextRepository = contextRepository;
         }
 
         public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken ct)
@@ -43,48 +48,30 @@ namespace ZVSTelegramBot.TelegramBot
                 return;
             }
             var telegramUserId = update.Message.From.Id;
-            var telegramUserName = update.Message.From.Username;
-            var command = update.Message.Text.Split(' ')[0];
-            OnHandleUpdateStarted?.Invoke(command);
+            OnHandleUpdateStarted?.Invoke(update.Message.Text);
             
             try
             {
+                //условие обработки команды cancel
+                if (update.Message.Text.Equals("/cancel", StringComparison.OrdinalIgnoreCase))
+                {
+                    var resetcontext = await _contextRepository.GetContext(telegramUserId, ct);
+                    if (resetcontext != null)
+                    {
+                        await _contextRepository.ResetContext(telegramUserId, ct);
+                        await botClient.SendMessage(update.Message.Chat, "Текущее действие отменено", replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
+                        return;
+                    }
+                }
+                var context = await _contextRepository.GetContext(telegramUserId, ct);
+                if (context != null)
+                {
+                    await ProcessScenario(botClient, context, update, ct);
+                    return;
+                }
+
                 var user = await _userService.GetUser(telegramUserId, ct);
-                //await botClient.SendMessage(update.Message.Chat, $"Получил '{command}'", cancellationToken: ct);
-
-                //условия для задания максимального количества задач и ее максимальной длины, так же добавила возможность переустановки при повторном /start
-                //if (user != null && user.WaitingForConfigReset)
-                //{
-                //    user.WaitingForConfigReset = false;
-
-                //    if (command == "да")
-                //    {
-                //        user.WaitingForMaxTaskCount = true;
-                //        user.WaitingForConfigReset = false;
-                //        await _userService.UpdateUser(user, ct);
-                //        await RequestMaxTaskCount(botClient, user, update, ct);
-                //    }
-                //    else if (command == "нет")
-                //    {
-                //        await botClient.SendMessage(update.Message.Chat, "Хорошо, настройки остаются без изменений", replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
-                //    }
-                //    else
-                //    {
-                //        await botClient.SendMessage(update.Message.Chat, "Пожалуйста, ответьте 'да' или 'нет'", replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
-                //    }
-                //    await _userService.UpdateUser(user, ct);
-                //    return;
-                //}
-                //if (user != null && user.WaitingForMaxTaskCount)
-                //{
-                //    await HandleMaxTaskCountInput(botClient, user, update, ct);
-                //    return;
-                //}
-                //if (user != null && user.WaitingForMaxLengthCount)
-                //{
-                //    await HandleMaxLengthCountInput(botClient, user, update, ct);
-                //    return;
-                //}
+                var command = update.Message.Text.Split(' ')[0];
                 //условие обработки команды start
                 if (command == "/start")
                 {
@@ -106,55 +93,15 @@ namespace ZVSTelegramBot.TelegramBot
             }
             finally 
             {
-                OnHandleUpdateCompleted?.Invoke(command);
+                OnHandleUpdateCompleted?.Invoke(update.Message.Text);
             }
         }
+        //нужен ли этот метод???? это вроде из старых ДЗ
         public Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, HandleErrorSource source, CancellationToken ct)
         {
             Console.WriteLine($"HandleError: {exception.Message})");
             return Task.CompletedTask;
         }
-        //метод для задания максимального количества задач при условии состояния
-        //private async Task HandleMaxTaskCountInput(ITelegramBotClient botClient, ToDoUser user, Update update, CancellationToken ct)
-        //{
-        //    var input = update.Message.Text.Trim();
-        //    try
-        //    {
-        //        await Helper.SetMaxTaskCount(botClient, input, user, update, ct);
-        //        user.WaitingForMaxTaskCount = false;
-        //        user.WaitingForMaxLengthCount = true;
-        //        await _userService.UpdateUser(user, ct);
-        //        await botClient.SendMessage(update.Message.Chat, "Теперь введите максимальную длину задачи (количество символов от 1 до 100)", cancellationToken: ct);
-        //    }
-        //    catch (ArgumentException ex)
-        //    {
-        //        await botClient.SendMessage(update.Message.Chat, ex.Message, cancellationToken: ct);
-        //    }
-        //}
-        //метод для задания максимальной длины задачи при условии состояния
-        //private async Task HandleMaxLengthCountInput(ITelegramBotClient botClient, ToDoUser user, Update update, CancellationToken ct)
-        //{
-        //    var input = update.Message.Text.Trim();
-        //    try
-        //    {
-        //        await Helper.SetMaxLengthCount(botClient, input, user, update, ct);
-        //        user.WaitingForMaxLengthCount = false;
-        //        await _userService.UpdateUser(user, ct);
-        //        await botClient.SendMessage(update.Message.Chat, "Настройки успешно сохранены!", replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
-        //    }
-        //    catch (ArgumentException ex)
-        //    {
-        //        await botClient.SendMessage(update.Message.Chat, ex.Message, cancellationToken: ct);
-        //    }
-        //}
-        //переписываем состояния при повторном вводе /start
-        //private async Task RequestMaxTaskCount(ITelegramBotClient botClient, ToDoUser user, Update update, CancellationToken ct)
-        //{
-        //    user.WaitingForMaxTaskCount = true;
-        //    user.WaitingForMaxLengthCount = false;
-        //    await _userService.UpdateUser(user, ct);
-        //    await botClient.SendMessage(update.Message.Chat, "Введите максимальное количество задач (от 1 до 100)", cancellationToken: ct);
-        //}
         //метод создания кнопки команды start для незарегистрированных
         private ReplyKeyboardMarkup GetUnauthorizedKeyboard()
         {
@@ -167,19 +114,28 @@ namespace ZVSTelegramBot.TelegramBot
                 OneTimeKeyboard = true
             };
         }
-        //метод создания кнопок команд showtasks, showalltasks, report для зарегистрированных
-        private ReplyKeyboardMarkup GetAuthorizedKeyboard()
+        //метод создания кнопок команд addtask, showtasks, showalltasks, report для зарегистрированных
+        public ReplyKeyboardMarkup GetAuthorizedKeyboard()
         {
             return new ReplyKeyboardMarkup(new[]
             {
-            new[] { new KeyboardButton("/showtasks"), new KeyboardButton("/showalltasks"), new KeyboardButton("/report") },
+            new[] { new KeyboardButton("/addtask"), new KeyboardButton("/showtasks") },
+            new[] { new KeyboardButton("/showalltasks"), new KeyboardButton("/report") }
         })
             {
                 ResizeKeyboard = true,
                 OneTimeKeyboard = false
             };
         }
-        
+        //метод создания кнопки команды cancel
+        public ReplyKeyboardMarkup GetCancelKeyboard()
+        {
+            return new ReplyKeyboardMarkup(new[] { new KeyboardButton("/cancel") })
+            {
+                ResizeKeyboard = true,
+                OneTimeKeyboard = true
+            };
+        }
         //метод обработки команды start
         private async Task Start(ITelegramBotClient botClient, ToDoUser? user, Update update, CancellationToken ct)
         {
@@ -190,40 +146,8 @@ namespace ZVSTelegramBot.TelegramBot
                     // Регистрация нового пользователя
                     user = await _userService.RegisterUser(update.Message.From.Id, update.Message.From.Username, ct);
                     await botClient.SendMessage(update.Message.Chat, $"Добро пожаловать, Вы зарегистрированы как {user.TelegramUserName}!", replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
-                    //await RequestMaxTaskCount(botClient, user, update, ct);
                 }
-                //запрашиваем лимиты
-                //else if (user.WaitingForMaxTaskCount || user.WaitingForMaxLengthCount)
-                //{
-                //    if (user.WaitingForMaxTaskCount)
-                //    {
-                //        await HandleMaxTaskCountInput(botClient, user, update, ct);
-                //    }
-                //    else
-                //    {
-                //        await HandleMaxLengthCountInput(botClient, user, update, ct);
-                //    }
-                //}
-                //запрашиваем лимиты повторно при повторном /start
-                //else
-                //{
-                //    await botClient.SendMessage(
-                //        update.Message.Chat,
-                //        $"Мы уже знакомы, {user.TelegramUserName}! Хотите изменить настройки лимитов задач? (да/нет)",
-                //        replyMarkup: new ReplyKeyboardMarkup(new[]
-                //        {
-                //            new KeyboardButton("да"),
-                //            new KeyboardButton("нет")
-                //        })
-                //        {
-                //            ResizeKeyboard = true,
-                //            OneTimeKeyboard = true
-                //        },
-                //        cancellationToken: ct);
-                //    //меняем состояние
-                //    user.WaitingForConfigReset = true;
-                //    await _userService.UpdateUser(user, ct);
-                //}
+               
             }
             catch (Exception ex)
             {
@@ -236,7 +160,7 @@ namespace ZVSTelegramBot.TelegramBot
             switch (command)
             {
                 case "/info":
-                    await botClient.SendMessage(update.Message.Chat, "Вот информация о боте. \nДата создания: 23.02.2025. Версия: 3.0.0 от 06.05.2025", replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
+                    await botClient.SendMessage(update.Message.Chat, "Вот информация о боте. \nДата создания: 23.02.2025. Версия: 3.1.1 от 16.06.2025", replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
                     break;
                 case "/help":
                     await Help(botClient, update, ct);
@@ -263,7 +187,7 @@ namespace ZVSTelegramBot.TelegramBot
                     await Find(botClient, user, update, ct);
                     break;
                 default:
-                    await botClient.SendMessage(update.Message.Chat, "Введена неверная команда. Пожалуйста, попробуйте снова", cancellationToken: ct);
+                    await botClient.SendMessage(update.Message.Chat, "Введена неверная команда. Пожалуйста, попробуйте снова", replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
                     break;
             }
         }
@@ -273,7 +197,7 @@ namespace ZVSTelegramBot.TelegramBot
             if (command == "/info" || command == "/help")
             {
                 if (command == "/info")
-                    await botClient.SendMessage(update.Message.Chat, "Вот информация о боте. \nДата создания: 23.02.2025. Версия: 3.0.0 от 06.05.2025" +
+                    await botClient.SendMessage(update.Message.Chat, "Вот информация о боте. \nДата создания: 23.02.2025. Версия: 3.1.1 от 16.06.2025" +
                         "\nПожалуйста, зарегистрируйтесь, нажав кнопку /start", replyMarkup: GetUnauthorizedKeyboard(), cancellationToken: ct);
 
                 if (command == "/help")
@@ -292,15 +216,16 @@ namespace ZVSTelegramBot.TelegramBot
             bool isRegistered = user != null;
             var helpMessage = "Доступные команды:" +
                               "\n/start, /help, /info" +
-                              "\nДля зарегистрированных пользователей доступны:" +
-                              "\n/start - запускаем процедуру регистрации. Повторная команда позволяет изменить установленные лимиты максимального количества задач и длины задачи" +
-                              "\n/addtask <имя задачи> - добавление в список новой задачи" +
+                              "\n\nДля зарегистрированных пользователей доступны:" +
+                              "\n/start - запуск процедуры регистрации пользователя." +
+                              "\n/addtask - добавление в список дел новой задачи" +
                               "\n/removetask <номер задачи> - удаление задачи из списка по ее порядковому номеру" +
                               "\n/completetask <ID задачи> - установить задачу как выполненную по ее ID" +
                               "\n/showtasks - показать все активные задачи" +
                               "\n/showalltasks - показать весь список задач" +
                               "\n/report - вывод статистики по задачам" +
-                              "\n/find <префикс> - поиск задачи по нескольким сиволам ее начала";
+                              "\n/find <префикс> - поиск задачи по нескольким сиволам ее начала" +
+                              "\n/cancel - отмена текущего действия";
             if (!isRegistered)
             {
                 await botClient.SendMessage(update.Message.Chat, $"{helpMessage}" +
@@ -314,20 +239,10 @@ namespace ZVSTelegramBot.TelegramBot
         //добавляем задачу по имени
         private async Task AddTask(ITelegramBotClient botClient, ToDoUser? user, Update update, CancellationToken ct)
         {
-            if (update.Message is not { } message)
-                return;
-            var taskName = update.Message.Text.Substring(8).Trim();
-            if (!string.IsNullOrWhiteSpace(taskName))
-            {
-                await _toDoService.Add(user, taskName, ct);
-                await botClient.SendMessage(update.Message.Chat, $"Задача `{EscapeMarkdownV2(taskName)}` добавлена", replyMarkup: GetAuthorizedKeyboard(), parseMode: ParseMode.MarkdownV2, cancellationToken: ct);
-            }
-            else
-            {
-                await botClient.SendMessage(update.Message.Chat, "После команды необходимо указать имя задачи", cancellationToken: ct);
-            }
+            var context = new ScenarioContext(update.Message.From.Id, ScenarioType.AddTask);
+            await _contextRepository.SetContext(context.UserId, context, ct);
+            await ProcessScenario(botClient, context, update, ct);
         }
-
         //удаляем задачу по ее порядковому номеру
         private async Task RemoveTask(ITelegramBotClient botClient, Guid userId, Update update, CancellationToken ct)
         {
@@ -396,7 +311,7 @@ namespace ZVSTelegramBot.TelegramBot
                 await botClient.SendMessage(update.Message.Chat, "После команды необходимо указать корректный ID задачи", cancellationToken: ct);
             }
         }
-        //показываем все активные и неактивные задачи
+        //показываем все активные и завершенные задачи
         private async Task ShowAllTasks(ITelegramBotClient botClient, Update update, CancellationToken ct)
         {
             if (update.Message is not { } message)
@@ -448,7 +363,7 @@ namespace ZVSTelegramBot.TelegramBot
                     : $"По вашему запросу найдены следующие задачи:\n{taskList}", replyMarkup: GetAuthorizedKeyboard(),parseMode: ParseMode.MarkdownV2, cancellationToken: ct);
         }
         //экранируем спецсимволы, иначе вылетает ошибка у Бота
-        private string EscapeMarkdownV2(string text)
+        public string EscapeMarkdownV2(string text)
         {
             if (string.IsNullOrEmpty(text))
                 return text;
@@ -473,6 +388,32 @@ namespace ZVSTelegramBot.TelegramBot
                        .Replace(".", "\\.")
                        .Replace("\\", "\\\\");
         }
+        //находит обработчик для указанного типа сценария
+        private IScenario GetScenario(ScenarioType scenario)
+        {
+            var handler = _scenarios.FirstOrDefault(s => s.CanHandle(scenario));
+            return handler ?? throw new KeyNotFoundException($"Сценарий {scenario} не найден");
+        }
+        //обработка сценария
+        private async Task ProcessScenario(ITelegramBotClient botClient, ScenarioContext context, Update update, CancellationToken ct)
+        {
+            var scenario = GetScenario(context.CurrentScenario);
+            var result = await scenario.HandleMessageAsync(botClient, context, update, ct);
+
+            if (result == ScenarioResult.Completed)
+            {
+                await _contextRepository.ResetContext(context.UserId, ct);
+                await botClient.SendMessage(update.Message.Chat, "Действие завершено", replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
+            }
+            else
+            {
+                await _contextRepository.SetContext(context.UserId, context, ct);
+                if (context.CurrentStep != null)
+                {
+                    await botClient.SendMessage(update.Message.Chat, "Вы можете отменить действие при помощи кнопки /cancel", replyMarkup: GetCancelKeyboard(), cancellationToken: ct);
+                }
+            }
+        }
         //кейсы исключений
         private async Task HandleException(Exception ex, ITelegramBotClient botClient, Update update, CancellationToken ct)
         {
@@ -482,14 +423,6 @@ namespace ZVSTelegramBot.TelegramBot
                     await botClient.SendMessage(update.Message.Chat, $"Ошибка аргумента: {argEx.Message}", cancellationToken: ct);
                     await botClient.SendMessage(update.Message.Chat, "Произошла ошибка. Пожалуйста, проверьте введенные данные", cancellationToken: ct);
                     break;
-
-                //case TaskCountLimitException taskCountLimit:
-                //    await botClient.SendMessage(update.Message.Chat, $"Превышен лимит: {taskCountLimit.Message}", cancellationToken: ct);
-                //    break;
-
-                //case TaskLengthLimitException taskLengthLimit:
-                //    await botClient.SendMessage(update.Message.Chat, $"Превышен лимит: {taskLengthLimit.Message}", cancellationToken: ct);
-                //    break;
 
                 case DuplicateTaskException taskDouble:
                     await botClient.SendMessage(update.Message.Chat, $"Дубликат задачи: {taskDouble.Message}", cancellationToken: ct);

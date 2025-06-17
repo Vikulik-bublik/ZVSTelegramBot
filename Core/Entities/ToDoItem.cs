@@ -19,5 +19,6 @@ namespace ZVSTelegramBot.Core.Entities
         public DateTime CreatedAt { get; set; }
         public ToDoItemState State { get; set; }
         public DateTime? StateChangedAt { get; set; }
+        public DateTime? Deadline { get; set; }
     }
 }
