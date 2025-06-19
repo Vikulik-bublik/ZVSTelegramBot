@@ -1,12 +1,13 @@
-﻿using ZVSTelegramBot.Core.DataAccess;
-using ZVSTelegramBot.Core.Services;
-using ZVSTelegramBot.Infrastructure.DataAccess;
-using ZVSTelegramBot.TelegramBot;
-using Telegram.Bot;
-using Telegram.Bot.Types;
+﻿using Telegram.Bot;
 using Telegram.Bot.Polling;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
+using ZVSTelegramBot.Core.DataAccess;
+using ZVSTelegramBot.Core.Services;
+using ZVSTelegramBot.Infrastructure.DataAccess;
+using ZVSTelegramBot.Scenarios;
+using ZVSTelegramBot.TelegramBot;
 
 
 namespace ZVSTelegramBot
@@ -15,19 +16,28 @@ namespace ZVSTelegramBot
     {
         public static async Task Main(string[] args)
         {
+            //хранилища
             var usersStoragePath = Path.Combine(Environment.CurrentDirectory, "Users");
             var userRepository = new FileUserRepository(usersStoragePath);
             var storagePath = Path.Combine(Environment.CurrentDirectory, "ToDoItems");
             var toDoRepository = new FileToDoRepository(storagePath);
+            //сервисы
             var reportService = new ToDoReportService(toDoRepository);
             var userService = new UserService(userRepository);
             var toDoService = new ToDoService(toDoRepository);
+            //сценарии
+            var contextRepository = new InMemoryScenarioContextRepository();
+            var scenarios = new List<IScenario>
+            {
+                new AddTaskScenario(userService, toDoService)
+            };
+            //настройка обновлений
             var receiverOptions = new ReceiverOptions
-                {
-                    AllowedUpdates = [UpdateType.Message],
-                    DropPendingUpdates = true
-                };
-            var handler = new UpdateHandler(userService, toDoService, reportService);
+            {
+                AllowedUpdates = [UpdateType.Message],
+                DropPendingUpdates = true
+            };
+            var handler = new UpdateHandler(userService, toDoService, reportService, scenarios, contextRepository);
             string token = Environment.GetEnvironmentVariable("TELEGRAM_CsharpBOT_TOKEN", EnvironmentVariableTarget.User);
             if (string.IsNullOrEmpty(token))
             {
@@ -48,7 +58,8 @@ namespace ZVSTelegramBot
                 new() { Command = "report", Description = "Статистика по задачам" },
                 new() { Command = "find", Description = "Поиск задачи по префиксу" },
                 new() { Command = "help", Description = "Помощь по командам" },
-                new() { Command = "info", Description = "Информация о боте" }
+                new() { Command = "info", Description = "Информация о боте" },
+                new() { Command = "cancel", Description = "Отмена текущего действия" }
             };
             try
             {

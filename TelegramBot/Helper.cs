@@ -1,34 +1,11 @@
 ﻿using System;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 using ZVSTelegramBot.Core.Entities;
 
 public static class Helper
 {
-    //public static async Task SetMaxTaskCount(ITelegramBotClient botClient, string input, ToDoUser user, Update update, CancellationToken ct)
-    //{
-    //    try
-    //    {
-    //        user.MaxTaskCount = await ParseAndValidateInt(input, min: 1, max: 100, ct);
-    //        await botClient.SendMessage(update.Message.Chat, $"Максимальное число задач установлено: {user.MaxTaskCount}", cancellationToken: ct);
-    //    }
-    //    catch (ArgumentException ex)
-    //    {
-    //        throw ex;
-    //    }
-    //}
-    //public static async Task SetMaxLengthCount(ITelegramBotClient botClient, string input, ToDoUser user, Update update, CancellationToken ct)
-    //{
-    //    try
-    //    {
-    //        user.MaxLengthCount = await ParseAndValidateInt(input, min: 1, max: 100, ct);
-    //        await botClient.SendMessage(update.Message.Chat, $"Максимальная длина задач установлена на количество символов: {user.MaxLengthCount}", cancellationToken: ct);
-    //    }
-    //    catch (ArgumentException ex)
-    //    {
-    //        throw ex;
-    //    }
-    //}
     public static Task ValidateString(string? str, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(str))
@@ -50,5 +27,65 @@ public static class Helper
             throw new ArgumentException($"Значение должно быть в диапазоне от {min} до {max}");
         }
         return result;
+    }
+    //метод создания кнопки команды start для незарегистрированных
+    public static ReplyKeyboardMarkup GetUnauthorizedKeyboard()
+    {
+        return new ReplyKeyboardMarkup(new[]
+        {
+            new KeyboardButton("/start")
+        })
+        {
+            ResizeKeyboard = true,
+            OneTimeKeyboard = true
+        };
+    }
+    //метод создания кнопок команд addtask, showtasks, showalltasks, report для зарегистрированных
+    public static ReplyKeyboardMarkup GetAuthorizedKeyboard()
+    {
+        return new ReplyKeyboardMarkup(new[]
+        {
+            new[] { new KeyboardButton("/addtask"), new KeyboardButton("/showtasks") },
+            new[] { new KeyboardButton("/showalltasks"), new KeyboardButton("/report") }
+        })
+        {
+            ResizeKeyboard = true,
+            OneTimeKeyboard = false
+        };
+    }
+    //метод создания кнопки команды cancel
+    public static ReplyKeyboardMarkup GetCancelKeyboard()
+    {
+        return new ReplyKeyboardMarkup(new[] { new KeyboardButton("/cancel") })
+        {
+            ResizeKeyboard = true,
+            OneTimeKeyboard = true
+        };
+    }
+    //экранируем спецсимволы, иначе вылетает ошибка у Бота
+    public static string EscapeMarkdownV2(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        return text.Replace("_", "\\_")
+                   .Replace("*", "\\*")
+                   .Replace("[", "\\[")
+                   .Replace("]", "\\]")
+                   .Replace("(", "\\(")
+                   .Replace(")", "\\)")
+                   .Replace("~", "\\~")
+                   .Replace("`", "\\`")
+                   .Replace(">", "\\>")
+                   .Replace("#", "\\#")
+                   .Replace("+", "\\+")
+                   //.Replace("-", "\\-")
+                   .Replace("=", "\\=")
+                   .Replace("|", "\\|")
+                   .Replace("{", "\\{")
+                   .Replace("}", "\\}")
+                   .Replace("!", "\\!")
+                   .Replace(".", "\\.")
+                   .Replace("\\", "\\\\");
     }
 }

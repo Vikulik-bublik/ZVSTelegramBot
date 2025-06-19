@@ -26,16 +26,12 @@ namespace ZVSTelegramBot.Core.Services
             return new List<ToDoItem>();
             return await _toDoRepository.Find(user.UserId, item => item.Name.StartsWith(namePrefix, StringComparison.OrdinalIgnoreCase), ct);
         }
-        public async Task<ToDoItem> Add(ToDoUser user, string name, CancellationToken ct)
+        public async Task<ToDoItem> Add(ToDoUser user, string name, DateTime? deadline, CancellationToken ct)
         {
             if (user == null) throw new ArgumentNullException(nameof(user));
 
             Helper.ValidateString(name, ct);
             name = name.Trim();
-            //if (name.Length > user.MaxLengthCount)
-            //    throw new TaskLengthLimitException(user.MaxLengthCount);
-            //if (await _toDoRepository.CountActive(user.UserId, ct) >= user.MaxTaskCount)
-            //    throw new TaskCountLimitException(user.MaxTaskCount);
             if (await _toDoRepository.ExistsByName(user.UserId, name, ct))
                 throw new DuplicateTaskException(name);
             var item = new ToDoItem
@@ -44,6 +40,7 @@ namespace ZVSTelegramBot.Core.Services
                 User = user,
                 Name = name,
                 CreatedAt = DateTime.UtcNow,
+                Deadline = deadline,
                 State = ToDoItemState.Active
             };
             await _toDoRepository.Add(item, ct);
