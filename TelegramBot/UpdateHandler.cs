@@ -59,7 +59,7 @@ namespace ZVSTelegramBot.TelegramBot
                     if (resetcontext != null)
                     {
                         await _contextRepository.ResetContext(telegramUserId, ct);
-                        await botClient.SendMessage(update.Message.Chat, "Текущее действие отменено", replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
+                        await botClient.SendMessage(update.Message.Chat, "Текущее действие отменено", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
                         return;
                     }
                 }
@@ -102,40 +102,7 @@ namespace ZVSTelegramBot.TelegramBot
             Console.WriteLine($"HandleError: {exception.Message})");
             return Task.CompletedTask;
         }
-        //метод создания кнопки команды start для незарегистрированных
-        private ReplyKeyboardMarkup GetUnauthorizedKeyboard()
-        {
-            return new ReplyKeyboardMarkup(new[]
-            {
-            new KeyboardButton("/start")
-        })
-            {
-                ResizeKeyboard = true,
-                OneTimeKeyboard = true
-            };
-        }
-        //метод создания кнопок команд addtask, showtasks, showalltasks, report для зарегистрированных
-        public ReplyKeyboardMarkup GetAuthorizedKeyboard()
-        {
-            return new ReplyKeyboardMarkup(new[]
-            {
-            new[] { new KeyboardButton("/addtask"), new KeyboardButton("/showtasks") },
-            new[] { new KeyboardButton("/showalltasks"), new KeyboardButton("/report") }
-        })
-            {
-                ResizeKeyboard = true,
-                OneTimeKeyboard = false
-            };
-        }
-        //метод создания кнопки команды cancel
-        public ReplyKeyboardMarkup GetCancelKeyboard()
-        {
-            return new ReplyKeyboardMarkup(new[] { new KeyboardButton("/cancel") })
-            {
-                ResizeKeyboard = true,
-                OneTimeKeyboard = true
-            };
-        }
+        
         //метод обработки команды start
         private async Task Start(ITelegramBotClient botClient, ToDoUser? user, Update update, CancellationToken ct)
         {
@@ -145,7 +112,7 @@ namespace ZVSTelegramBot.TelegramBot
                 {
                     // Регистрация нового пользователя
                     user = await _userService.RegisterUser(update.Message.From.Id, update.Message.From.Username, ct);
-                    await botClient.SendMessage(update.Message.Chat, $"Добро пожаловать, Вы зарегистрированы как {user.TelegramUserName}!", replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
+                    await botClient.SendMessage(update.Message.Chat, $"Добро пожаловать, Вы зарегистрированы как {user.TelegramUserName}!", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
                 }
                
             }
@@ -160,7 +127,7 @@ namespace ZVSTelegramBot.TelegramBot
             switch (command)
             {
                 case "/info":
-                    await botClient.SendMessage(update.Message.Chat, "Вот информация о боте. \nДата создания: 23.02.2025. Версия: 3.1.1 от 16.06.2025", replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
+                    await botClient.SendMessage(update.Message.Chat, "Вот информация о боте. \nДата создания: 23.02.2025. Версия: 3.1.1 от 16.06.2025", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
                     break;
                 case "/help":
                     await Help(botClient, update, ct);
@@ -187,7 +154,7 @@ namespace ZVSTelegramBot.TelegramBot
                     await Find(botClient, user, update, ct);
                     break;
                 default:
-                    await botClient.SendMessage(update.Message.Chat, "Введена неверная команда. Пожалуйста, попробуйте снова", replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
+                    await botClient.SendMessage(update.Message.Chat, "Введена неверная команда. Пожалуйста, попробуйте снова", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
                     break;
             }
         }
@@ -198,7 +165,7 @@ namespace ZVSTelegramBot.TelegramBot
             {
                 if (command == "/info")
                     await botClient.SendMessage(update.Message.Chat, "Вот информация о боте. \nДата создания: 23.02.2025. Версия: 3.1.1 от 16.06.2025" +
-                        "\nПожалуйста, зарегистрируйтесь, нажав кнопку /start", replyMarkup: GetUnauthorizedKeyboard(), cancellationToken: ct);
+                        "\nПожалуйста, зарегистрируйтесь, нажав кнопку /start", replyMarkup: Helper.GetUnauthorizedKeyboard(), cancellationToken: ct);
 
                 if (command == "/help")
                     await Help(botClient, update, ct);
@@ -206,7 +173,7 @@ namespace ZVSTelegramBot.TelegramBot
             else
             {
                 await botClient.SendMessage(update.Message.Chat, "Вы не зарегистрированы" +
-                    "\nНезарегистрированным пользователям доступны команды только /help и /info. \nПожалуйста, зарегистрируйтесь, нажав кнопку /start", replyMarkup: GetUnauthorizedKeyboard(), cancellationToken: ct);
+                    "\nНезарегистрированным пользователям доступны команды только /help и /info. \nПожалуйста, зарегистрируйтесь, нажав кнопку /start", replyMarkup: Helper.GetUnauthorizedKeyboard(), cancellationToken: ct);
             }
         }
         //общий Хелп для всех категорий пользователей. Однако добавлено различие в кнопках
@@ -229,11 +196,11 @@ namespace ZVSTelegramBot.TelegramBot
             if (!isRegistered)
             {
                 await botClient.SendMessage(update.Message.Chat, $"{helpMessage}" +
-                    $"\nПожалуйста, зарегистрируйтесь, нажав кнопку /start", replyMarkup: GetUnauthorizedKeyboard(),cancellationToken: ct);
+                    $"\nПожалуйста, зарегистрируйтесь, нажав кнопку /start", replyMarkup: Helper.GetUnauthorizedKeyboard(),cancellationToken: ct);
             }
             else
             {
-                await botClient.SendMessage(update.Message.Chat, helpMessage, replyMarkup: GetAuthorizedKeyboard(), cancellationToken:    ct);
+                await botClient.SendMessage(update.Message.Chat, helpMessage, replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken:    ct);
             }
         }
         //добавляем задачу по имени
@@ -266,7 +233,7 @@ namespace ZVSTelegramBot.TelegramBot
             }
             var taskToRemove = allTasks[taskNumber - 1];
             await _toDoService.Delete(taskToRemove.Id, ct);
-            await botClient.SendMessage(update.Message.Chat, $"Задача `{EscapeMarkdownV2(taskToRemove.Name)}` успешно удалена", replyMarkup: GetAuthorizedKeyboard(),  parseMode: ParseMode.MarkdownV2, cancellationToken: ct);
+            await botClient.SendMessage(update.Message.Chat, $"Задача `{Helper.EscapeMarkdownV2(taskToRemove.Name)}` успешно удалена", replyMarkup: Helper.GetAuthorizedKeyboard(),  parseMode: ParseMode.MarkdownV2, cancellationToken: ct);
         }
         //показываем активные задачи
         private async Task ShowTasks(ITelegramBotClient botClient, Guid userId, Update update, CancellationToken ct)
@@ -277,12 +244,12 @@ namespace ZVSTelegramBot.TelegramBot
             .OrderBy(t => t.CreatedAt)
             .ToList();
             var taskList = string.Join(Environment.NewLine, tasks.Select((t, index) =>
-                $"\nЗадача *{index + 1}*: `{EscapeMarkdownV2(t.Name)}`" +
-                $"\nВремя создания задачи: {EscapeMarkdownV2(t.CreatedAt.ToString("dd:MM:yyyy HH:mm:ss"))}" +
-                $"\nID задачи: `{EscapeMarkdownV2(t.Id.ToString())}`"
+                $"\nЗадача *{index + 1}*: `{Helper.EscapeMarkdownV2(t.Name)}`" +
+                $"\nВремя создания задачи: {Helper.EscapeMarkdownV2(t.CreatedAt.ToString("dd:MM:yyyy HH:mm:ss"))}" +
+                $"\nID задачи: `{Helper.EscapeMarkdownV2(t.Id.ToString())}`"
             ));
             var finalMessage = string.IsNullOrEmpty(taskList) ? "Нет активных задач" : $"Активные задачи:{taskList}";
-            await botClient.SendMessage(update.Message.Chat, finalMessage, replyMarkup: GetAuthorizedKeyboard(), parseMode: ParseMode.MarkdownV2, cancellationToken: ct);
+            await botClient.SendMessage(update.Message.Chat, finalMessage, replyMarkup: Helper.GetAuthorizedKeyboard(), parseMode: ParseMode.MarkdownV2, cancellationToken: ct);
         }
         //меняем состаяние задачи из активного в неактивное по ID
         private async Task CompleteTask(ITelegramBotClient botClient, Update update, CancellationToken ct)
@@ -304,7 +271,7 @@ namespace ZVSTelegramBot.TelegramBot
                     return;
                 }
                 await _toDoService.MarkCompleted(taskId, user.UserId, ct);
-                await botClient.SendMessage(update.Message.Chat, $"Задача `{EscapeMarkdownV2(task.Name)}` помечена как выполненная", replyMarkup: GetAuthorizedKeyboard(), parseMode: ParseMode.MarkdownV2, cancellationToken: ct);
+                await botClient.SendMessage(update.Message.Chat, $"Задача `{Helper.EscapeMarkdownV2(task.Name)}` помечена как выполненная", replyMarkup: Helper.GetAuthorizedKeyboard(), parseMode: ParseMode.MarkdownV2, cancellationToken: ct);
             }
             else
             {
@@ -327,12 +294,12 @@ namespace ZVSTelegramBot.TelegramBot
                 .OrderBy(t => t.CreatedAt)
                 .ToList();
             var allTaskList = string.Join(Environment.NewLine, allTasks.Select((t, index) =>
-               $"\nЗадача *{index + 1}*: `{EscapeMarkdownV2(t.Name)}`, статус: {EscapeMarkdownV2(t.State.ToString())}" +
-               $"\nВремя создания задачи: {EscapeMarkdownV2(t.CreatedAt.ToString("dd:MM:yyyy HH:mm:ss"))}" +
-               $"\nID задачи: `{EscapeMarkdownV2(t.Id.ToString())}`"
+               $"\nЗадача *{index + 1}*: `{Helper.EscapeMarkdownV2(t.Name)}`, статус: {Helper.EscapeMarkdownV2(t.State.ToString())}" +
+               $"\nВремя создания задачи: {Helper.EscapeMarkdownV2(t.CreatedAt.ToString("dd:MM:yyyy HH:mm:ss"))}" +
+               $"\nID задачи: `{Helper.EscapeMarkdownV2(t.Id.ToString())}`"
            ));
             var finalMessage = string.IsNullOrEmpty(allTaskList) ? "Нет задач" : $"Все задачи:{allTaskList}";
-            await botClient.SendMessage(update.Message.Chat, finalMessage, replyMarkup: GetAuthorizedKeyboard(), parseMode: ParseMode.MarkdownV2, cancellationToken: ct);
+            await botClient.SendMessage(update.Message.Chat, finalMessage, replyMarkup: Helper.GetAuthorizedKeyboard(), parseMode: ParseMode.MarkdownV2, cancellationToken: ct);
         }
         //вывод статистики по задачам
         private async Task Report(ITelegramBotClient botClient, ToDoUser user, Update update, CancellationToken ct)
@@ -340,7 +307,7 @@ namespace ZVSTelegramBot.TelegramBot
             var (total, completed, active, generatedAt) = await _reportService.GetUserStats(user.UserId, ct);
             var report = $"Статистика по задачам на {generatedAt}" +
                 $"\nВсего: {total}; Завершенных: {completed}; Активных: {active}";
-            await botClient.SendMessage(update.Message.Chat, report, replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
+            await botClient.SendMessage(update.Message.Chat, report, replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
         }
         //поиск задачи по префиксу
         private async Task Find(ITelegramBotClient botClient, ToDoUser user, Update update, CancellationToken ct)
@@ -353,41 +320,16 @@ namespace ZVSTelegramBot.TelegramBot
             }
             var tasks = await _toDoService.Find(user, namePrefix, ct);
             var taskList = string.Join(Environment.NewLine, tasks.Select(t =>
-                $"\nЗадача: `{EscapeMarkdownV2(t.Name)}`, статус: {EscapeMarkdownV2(t.State.ToString())}" +
-                $"\nВремя создания задачи: {EscapeMarkdownV2(t.CreatedAt.ToString("dd:MM:yyyy HH:mm:ss"))}" +
-                $"\nID задачи: `{EscapeMarkdownV2(t.Id.ToString())}`"
+                $"\nЗадача: `{Helper.EscapeMarkdownV2(t.Name)}`, статус: {Helper.   EscapeMarkdownV2(t.State.ToString())}" +
+                $"\nВремя создания задачи: {Helper.EscapeMarkdownV2(t.CreatedAt.ToString("dd:MM:yyyy HH:mm:ss"))}" +
+                $"\nID задачи: `{Helper.EscapeMarkdownV2(t.Id.ToString())}`"
             ));
             await botClient.SendMessage(update.Message.Chat,
                 string.IsNullOrEmpty(taskList)
                     ? $"Не найдено задач, начинающихся с '{namePrefix}'"
-                    : $"По вашему запросу найдены следующие задачи:\n{taskList}", replyMarkup: GetAuthorizedKeyboard(),parseMode: ParseMode.MarkdownV2, cancellationToken: ct);
+                    : $"По вашему запросу найдены следующие задачи:\n{taskList}", replyMarkup: Helper.GetAuthorizedKeyboard(),parseMode: ParseMode.MarkdownV2, cancellationToken: ct);
         }
-        //экранируем спецсимволы, иначе вылетает ошибка у Бота
-        public string EscapeMarkdownV2(string text)
-        {
-            if (string.IsNullOrEmpty(text))
-                return text;
-
-            return text.Replace("_", "\\_")
-                       .Replace("*", "\\*")
-                       .Replace("[", "\\[")
-                       .Replace("]", "\\]")
-                       .Replace("(", "\\(")
-                       .Replace(")", "\\)")
-                       .Replace("~", "\\~")
-                       .Replace("`", "\\`")
-                       .Replace(">", "\\>")
-                       .Replace("#", "\\#")
-                       .Replace("+", "\\+")
-                       //.Replace("-", "\\-")
-                       .Replace("=", "\\=")
-                       .Replace("|", "\\|")
-                       .Replace("{", "\\{")
-                       .Replace("}", "\\}")
-                       .Replace("!", "\\!")
-                       .Replace(".", "\\.")
-                       .Replace("\\", "\\\\");
-        }
+        
         //находит обработчик для указанного типа сценария
         private IScenario GetScenario(ScenarioType scenario)
         {
@@ -403,14 +345,14 @@ namespace ZVSTelegramBot.TelegramBot
             if (result == ScenarioResult.Completed)
             {
                 await _contextRepository.ResetContext(context.UserId, ct);
-                await botClient.SendMessage(update.Message.Chat, "Действие завершено", replyMarkup: GetAuthorizedKeyboard(), cancellationToken: ct);
+                await botClient.SendMessage(update.Message.Chat, "Действие завершено", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
             }
             else
             {
                 await _contextRepository.SetContext(context.UserId, context, ct);
                 if (context.CurrentStep != null)
                 {
-                    await botClient.SendMessage(update.Message.Chat, "Вы можете отменить действие при помощи кнопки /cancel", replyMarkup: GetCancelKeyboard(), cancellationToken: ct);
+                    await botClient.SendMessage(update.Message.Chat, "Вы можете отменить действие при помощи кнопки /cancel", replyMarkup: Helper.GetCancelKeyboard(), cancellationToken: ct);
                 }
             }
         }

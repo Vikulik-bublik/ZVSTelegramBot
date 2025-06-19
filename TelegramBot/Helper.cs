@@ -1,6 +1,7 @@
 ﻿using System;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 using ZVSTelegramBot.Core.Entities;
 
 public static class Helper
@@ -26,5 +27,65 @@ public static class Helper
             throw new ArgumentException($"Значение должно быть в диапазоне от {min} до {max}");
         }
         return result;
+    }
+    //метод создания кнопки команды start для незарегистрированных
+    public static ReplyKeyboardMarkup GetUnauthorizedKeyboard()
+    {
+        return new ReplyKeyboardMarkup(new[]
+        {
+            new KeyboardButton("/start")
+        })
+        {
+            ResizeKeyboard = true,
+            OneTimeKeyboard = true
+        };
+    }
+    //метод создания кнопок команд addtask, showtasks, showalltasks, report для зарегистрированных
+    public static ReplyKeyboardMarkup GetAuthorizedKeyboard()
+    {
+        return new ReplyKeyboardMarkup(new[]
+        {
+            new[] { new KeyboardButton("/addtask"), new KeyboardButton("/showtasks") },
+            new[] { new KeyboardButton("/showalltasks"), new KeyboardButton("/report") }
+        })
+        {
+            ResizeKeyboard = true,
+            OneTimeKeyboard = false
+        };
+    }
+    //метод создания кнопки команды cancel
+    public static ReplyKeyboardMarkup GetCancelKeyboard()
+    {
+        return new ReplyKeyboardMarkup(new[] { new KeyboardButton("/cancel") })
+        {
+            ResizeKeyboard = true,
+            OneTimeKeyboard = true
+        };
+    }
+    //экранируем спецсимволы, иначе вылетает ошибка у Бота
+    public static string EscapeMarkdownV2(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        return text.Replace("_", "\\_")
+                   .Replace("*", "\\*")
+                   .Replace("[", "\\[")
+                   .Replace("]", "\\]")
+                   .Replace("(", "\\(")
+                   .Replace(")", "\\)")
+                   .Replace("~", "\\~")
+                   .Replace("`", "\\`")
+                   .Replace(">", "\\>")
+                   .Replace("#", "\\#")
+                   .Replace("+", "\\+")
+                   //.Replace("-", "\\-")
+                   .Replace("=", "\\=")
+                   .Replace("|", "\\|")
+                   .Replace("{", "\\{")
+                   .Replace("}", "\\}")
+                   .Replace("!", "\\!")
+                   .Replace(".", "\\.")
+                   .Replace("\\", "\\\\");
     }
 }

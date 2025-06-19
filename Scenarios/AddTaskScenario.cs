@@ -18,13 +18,11 @@ namespace ZVSTelegramBot.Scenarios
     {
         private readonly IUserService _userService;
         private readonly IToDoService _toDoService;
-        private readonly UpdateHandler _updateHandler; //для использования маркдаун и клавиатуры из хэндлера
 
-        public AddTaskScenario(IUserService userService, IToDoService toDoService, UpdateHandler updateHandler)
+        public AddTaskScenario(IUserService userService, IToDoService toDoService)
         {
             _userService = userService;
             _toDoService = toDoService;
-            _updateHandler = updateHandler;
         }
 
         public bool CanHandle(ScenarioType scenario) => scenario == ScenarioType.AddTask;
@@ -65,14 +63,14 @@ namespace ZVSTelegramBot.Scenarios
             var user = await _userService.GetUser(context.UserId, ct);
             if (user == null)
             {
-                await bot.SendMessage(update.Message.Chat, "Ошибка: Пользователь не найден!", replyMarkup: _updateHandler.GetAuthorizedKeyboard(), cancellationToken: ct);
+                await bot.SendMessage(update.Message.Chat, "Ошибка: Пользователь не найден!", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
                 return ScenarioResult.Completed;
             }
 
             context.Data["User"] = user;
             context.CurrentStep = "Name";
 
-            await bot.SendMessage(update.Message.Chat, "Введите название задачи:", replyMarkup: _updateHandler.GetCancelKeyboard(), cancellationToken: ct);
+            await bot.SendMessage(update.Message.Chat, "Введите название задачи:", replyMarkup: Helper.GetCancelKeyboard(), cancellationToken: ct);
             return ScenarioResult.Transition;
         }
 
@@ -83,7 +81,7 @@ namespace ZVSTelegramBot.Scenarios
             context.Data["Name"] = taskName;
             context.CurrentStep = "Deadline";
 
-            await bot.SendMessage(update.Message.Chat, "Введите дедлайн задачи в формате ДД.ММ.ГГГГ:", replyMarkup: _updateHandler.GetCancelKeyboard(), cancellationToken: ct);
+            await bot.SendMessage(update.Message.Chat, "Введите дедлайн задачи в формате ДД.ММ.ГГГГ:", replyMarkup: Helper.GetCancelKeyboard(), cancellationToken: ct);
             return ScenarioResult.Transition;
         }
 
@@ -93,13 +91,13 @@ namespace ZVSTelegramBot.Scenarios
 
             if (!DateTime.TryParseExact(message, "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out deadline))
             {
-                await bot.SendMessage(update.Message.Chat, "Неверный формат даты. Пожалуйста, введите дату в формате ДД.ММ.ГГГГ:", replyMarkup: _updateHandler.GetCancelKeyboard(), cancellationToken: ct);
+                await bot.SendMessage(update.Message.Chat, "Неверный формат даты. Пожалуйста, введите дату в формате ДД.ММ.ГГГГ:", replyMarkup: Helper.GetCancelKeyboard(), cancellationToken: ct);
                 return ScenarioResult.Transition;
             }
 
             if (deadline.Date < DateTime.Today)
             {
-                await bot.SendMessage(update.Message.Chat, "Дедлайн не может быть в прошлом. Введите корректную дату:", replyMarkup: _updateHandler.GetCancelKeyboard(), cancellationToken: ct);
+                await bot.SendMessage(update.Message.Chat, "Дедлайн не может быть в прошлом. Введите корректную дату:", replyMarkup: Helper.GetCancelKeyboard(), cancellationToken: ct);
                 return ScenarioResult.Transition;
             }
 
@@ -108,17 +106,17 @@ namespace ZVSTelegramBot.Scenarios
             var addedTask = await _toDoService.Add(user, taskName, deadline, ct);
 
             var result = $"Задача добавлена" +
-                $"\nНазвание: {_updateHandler.EscapeMarkdownV2(addedTask.Name)}" +
-                $"\nДедлайн: {_updateHandler.EscapeMarkdownV2(deadline.ToString("dd:MM:yyyy"))}" +
-                $"\nID: `{_updateHandler.EscapeMarkdownV2(addedTask.Id.ToString())}`";
+                $"\nНазвание: {Helper.EscapeMarkdownV2(addedTask.Name)}" +
+                $"\nДедлайн: {Helper.EscapeMarkdownV2(deadline.ToString("dd:MM:yyyy"))}" +
+                $"\nID: `{Helper.EscapeMarkdownV2(addedTask.Id.ToString())}`";
 
-            await bot.SendMessage(update.Message.Chat, result, parseMode: ParseMode.MarkdownV2, replyMarkup: _updateHandler.GetAuthorizedKeyboard(), cancellationToken: ct);
+            await bot.SendMessage(update.Message.Chat, result, parseMode: ParseMode.MarkdownV2, replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
             return ScenarioResult.Completed;
         }
 
         private async Task HandleScenarioError(ITelegramBotClient bot, Update update, Exception ex, CancellationToken ct)
         {
-            await bot.SendMessage(update.Message.Chat, $"Произошла ошибка: {ex.Message}", replyMarkup: _updateHandler.GetAuthorizedKeyboard(), cancellationToken: ct);
+            await bot.SendMessage(update.Message.Chat, $"Произошла ошибка: {ex.Message}", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
         }
     }
 }

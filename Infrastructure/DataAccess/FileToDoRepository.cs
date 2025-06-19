@@ -119,7 +119,6 @@ namespace ZVSTelegramBot.Infrastructure.DataAccess
                 throw new ArgumentException("Пользователь не найден");
             var userId = item.User.UserId;
             var taskId = item.Id;
-            var deadline = item.Deadline;
             lock (_syncRoot)
             {
                 EnsureUserDirectoryExists(userId);

@@ -26,11 +26,10 @@ namespace ZVSTelegramBot
             var userService = new UserService(userRepository);
             var toDoService = new ToDoService(toDoRepository);
             //сценарии
-            var tempHandler = new UpdateHandler(userService, toDoService, reportService, new List<IScenario>(), null);
             var contextRepository = new InMemoryScenarioContextRepository();
             var scenarios = new List<IScenario>
             {
-                new AddTaskScenario(userService, toDoService, tempHandler)
+                new AddTaskScenario(userService, toDoService)
             };
             //настройка обновлений
             var receiverOptions = new ReceiverOptions
