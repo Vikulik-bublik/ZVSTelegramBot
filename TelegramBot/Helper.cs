@@ -3,9 +3,15 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using ZVSTelegramBot.Core.Entities;
+using ZVSTelegramBot.DTO;
 
 public static class Helper
 {
+    private const string AddListButtonText = "🆕 Добавить список";
+    private const string DeleteListButtonText = "❌ Удалить список";
+    private const string NoListButtonText = "📌 Без списка";
+    private const string SkipButtonText = "⏩ Пропустить";
+    //метод валидации ввода
     public static Task ValidateString(string? str, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(str))
@@ -13,20 +19,6 @@ public static class Helper
             throw new ArgumentException("Ввод не должен быть пустым или содержать только пробелы");
         }
         return Task.CompletedTask;
-    }
-    public static async Task<int> ParseAndValidateInt(string? str, int min, int max, CancellationToken ct)
-    {
-        await ValidateString(str, ct);
-
-        if (!int.TryParse(str, out int result))
-        {
-            throw new ArgumentException("Ввод должен быть целым числом");
-        }
-        if (result < min || result > max)
-        {
-            throw new ArgumentException($"Значение должно быть в диапазоне от {min} до {max}");
-        }
-        return result;
     }
     //метод создания кнопки команды start для незарегистрированных
     public static ReplyKeyboardMarkup GetUnauthorizedKeyboard()
@@ -40,13 +32,13 @@ public static class Helper
             OneTimeKeyboard = true
         };
     }
-    //метод создания кнопок команд addtask, showtasks, showalltasks, report для зарегистрированных
+    //метод создания кнопок команд addtask, show, report для зарегистрированных
     public static ReplyKeyboardMarkup GetAuthorizedKeyboard()
     {
         return new ReplyKeyboardMarkup(new[]
         {
-            new[] { new KeyboardButton("/addtask"), new KeyboardButton("/showtasks") },
-            new[] { new KeyboardButton("/showalltasks"), new KeyboardButton("/report") }
+            new[] { new KeyboardButton("/addtask"), new KeyboardButton("/show") },
+            new[] { new KeyboardButton("/report") }
         })
         {
             ResizeKeyboard = true,
@@ -61,6 +53,75 @@ public static class Helper
             ResizeKeyboard = true,
             OneTimeKeyboard = true
         };
+    }
+    //метод создания кнопки команды skip
+    public static InlineKeyboardMarkup GetSkipKeyboard()
+    {
+        return new InlineKeyboardMarkup(new[]
+        {
+            new[]
+            {
+                InlineKeyboardButton.WithCallbackData(SkipButtonText, "skip")
+            }
+        });
+    }
+    //кнопки для выбора списка
+    public static InlineKeyboardMarkup GetListSelectionKeyboard(List<ToDoList>lists, List<ToDoItem> tasksWithoutList, bool hideManagementButtons = false)
+    {
+
+        var buttons = new List<InlineKeyboardButton[]>();
+
+        //кнопка для задач без списка
+        buttons.Add(new[]
+        {
+            InlineKeyboardButton.WithCallbackData(
+                NoListButtonText,
+                new ToDoListCallbackDto { Action = "show", ToDoListId = null }.ToString())
+        });
+
+        //кнопки списков
+        buttons.AddRange(lists.Select(list => new[]
+        {
+            InlineKeyboardButton.WithCallbackData(
+                list.Name,
+                new ToDoListCallbackDto { Action = "show", ToDoListId = list.Id }.ToString())
+        }));
+
+        //кнопки добавления-удаления
+        if (!hideManagementButtons)
+        {
+            buttons.Add(new[]
+            {
+                InlineKeyboardButton.WithCallbackData(AddListButtonText, new ToDoListCallbackDto { Action = "addlist" }.ToString()),
+                InlineKeyboardButton.WithCallbackData(DeleteListButtonText, new ToDoListCallbackDto { Action = "deletelist" }.ToString())
+            });
+        }
+
+        return new InlineKeyboardMarkup(buttons);
+    }
+    //кнопка для удаления списка
+    public static InlineKeyboardMarkup GetListsKeyboard(IEnumerable<ToDoList> lists, string action)
+    {
+        var buttons = lists.Select(list => new[]
+        {
+            InlineKeyboardButton.WithCallbackData(
+                list.Name,
+                new ToDoListCallbackDto { Action = action, ToDoListId = list.Id }.ToString())
+        }).ToArray();
+
+        return new InlineKeyboardMarkup(buttons);
+    }
+    //клавиатура Да-Нет
+    public static InlineKeyboardMarkup GetYesNoKeyboard()
+    {
+        return new InlineKeyboardMarkup(new[]
+        {
+        new[]
+        {
+            InlineKeyboardButton.WithCallbackData("Да", "yes"),
+            InlineKeyboardButton.WithCallbackData("Нет", "no")
+        }
+        });
     }
     //экранируем спецсимволы, иначе вылетает ошибка у Бота
     public static string EscapeMarkdownV2(string text)
@@ -79,7 +140,7 @@ public static class Helper
                    .Replace(">", "\\>")
                    .Replace("#", "\\#")
                    .Replace("+", "\\+")
-                   //.Replace("-", "\\-")
+                   .Replace("-", "\\-")
                    .Replace("=", "\\=")
                    .Replace("|", "\\|")
                    .Replace("{", "\\{")

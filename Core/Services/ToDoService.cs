@@ -14,7 +14,7 @@ namespace ZVSTelegramBot.Core.Services
         private readonly IToDoRepository _toDoRepository;
         public ToDoService(IToDoRepository toDoRepository)
         {
-            _toDoRepository = toDoRepository ?? throw new ArgumentNullException(nameof(toDoRepository));
+            _toDoRepository = toDoRepository;
         }
         public async Task<IReadOnlyList<ToDoItem>> GetActiveByUserId(Guid userId, CancellationToken ct)
         {
@@ -26,7 +26,7 @@ namespace ZVSTelegramBot.Core.Services
             return new List<ToDoItem>();
             return await _toDoRepository.Find(user.UserId, item => item.Name.StartsWith(namePrefix, StringComparison.OrdinalIgnoreCase), ct);
         }
-        public async Task<ToDoItem> Add(ToDoUser user, string name, DateTime? deadline, CancellationToken ct)
+        public async Task<ToDoItem> Add(ToDoUser user, string name, DateTime? deadline, ToDoList? list, CancellationToken ct)
         {
             if (user == null) throw new ArgumentNullException(nameof(user));
 
@@ -39,7 +39,8 @@ namespace ZVSTelegramBot.Core.Services
                 Id = Guid.NewGuid(),
                 User = user,
                 Name = name,
-                CreatedAt = DateTime.UtcNow,
+                List = list,
+                CreatedAt = DateTime.UtcNow.AddHours(3),
                 Deadline = deadline,
                 State = ToDoItemState.Active
             };
@@ -53,7 +54,7 @@ namespace ZVSTelegramBot.Core.Services
             if (item != null)
             {
                 item.State = ToDoItemState.Completed;
-                item.StateChangedAt = DateTime.UtcNow;
+                item.StateChangedAt = DateTime.UtcNow.AddHours(3);
                 await _toDoRepository.Update(item, ct);
             }
         }
@@ -67,6 +68,14 @@ namespace ZVSTelegramBot.Core.Services
         public async Task<IReadOnlyList<ToDoItem>> GetAllTasks(Guid userId, CancellationToken ct)
         {
             return await _toDoRepository.GetAllByUserId(userId, ct);
+        }
+        public async Task<IReadOnlyList<ToDoItem>> GetByUserIdAndList(Guid userId, Guid? listId, CancellationToken ct)
+        {
+            var allTasks = await _toDoRepository.GetAllByUserId(userId, ct);
+
+            return listId == null
+            ? allTasks.Where(t => t.List == null).ToList()
+            : allTasks.Where(t => t.List?.Id == listId).ToList();
         }
     }
 }

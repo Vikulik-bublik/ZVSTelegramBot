@@ -12,6 +12,6 @@ namespace ZVSTelegramBot.Core.Entities
         public Guid UserId { get; set; }
         public long TelegramUserId { get; set; }
         public string TelegramUserName { get; set; }
-        public DateTime RegisteredAt { get; set; }
+        public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
     }
 }

@@ -23,7 +23,7 @@ namespace ZVSTelegramBot.Core.Services
                 UserId = Guid.NewGuid(),
                 TelegramUserId = telegramUserId,
                 TelegramUserName = telegramUserName,
-                RegisteredAt = DateTime.UtcNow
+                RegisteredAt = DateTime.UtcNow.AddHours(3)
             };
             await _userRepository.Add(user, ct);
             return user;

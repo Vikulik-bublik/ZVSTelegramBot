@@ -8,6 +8,8 @@ namespace ZVSTelegramBot.Scenarios
     public enum ScenarioType
     {
         None,
-        AddTask
+        AddTask,
+        AddList,
+        DeleteList
     }
 }

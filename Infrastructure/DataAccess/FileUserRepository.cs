@@ -95,7 +95,7 @@ namespace ZVSTelegramBot.Infrastructure.DataAccess
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                throw new RepositoryException($"Не удалось обновить пользователя {user.UserId}", ex);
+                throw new RepositoryException($"Не удалось обновить данные пользователя {user.UserId}", ex);
             }
         }
     }

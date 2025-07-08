@@ -116,7 +116,7 @@ namespace ZVSTelegramBot.Infrastructure.DataAccess
         public async Task Add(ToDoItem item, CancellationToken ct)
         {
             if (item.User == null)
-                throw new ArgumentException("Пользователь не найден");
+                throw new ArgumentException("Пользователь не найден. Пожалуйста, зарегистрируйтесь с помощью /start");
             var userId = item.User.UserId;
             var taskId = item.Id;
             lock (_syncRoot)
@@ -135,7 +135,7 @@ namespace ZVSTelegramBot.Infrastructure.DataAccess
         public async Task Update(ToDoItem item, CancellationToken ct)
         {
             if(item.User == null)
-                throw new ArgumentException("Пользователь не найден");
+                throw new ArgumentException("Пользователь не найден. Пожалуйста, зарегистрируйтесь с помощью /start");
 
             var filePath = GetTaskFilePath(item.User.UserId, item.Id);
             if (!File.Exists(filePath))
