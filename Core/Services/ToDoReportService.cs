@@ -22,7 +22,7 @@ namespace ZVSTelegramBot.Core.Services
             total: tasks.Count, 
             completed: tasks.Count(t => t.State == ToDoItemState.Completed), 
             active: tasks.Count(t => t.State == ToDoItemState.Active), 
-            generatedAt: DateTime.UtcNow.AddHours(3)
+            generatedAt: DateTime.Now
             );
         }
     }

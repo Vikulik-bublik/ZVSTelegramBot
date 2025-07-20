@@ -36,6 +36,6 @@ namespace ZVSTelegramBot.DTO
             return dto;
         }
         public override string ToString() =>
-        ToDoListId.HasValue ? $"{Action}|{ToDoListId}" : $"{Action}|null";
+        $"{base.ToString()}|{(ToDoListId.HasValue ? ToDoListId.ToString() : "null")}";
     }
 }

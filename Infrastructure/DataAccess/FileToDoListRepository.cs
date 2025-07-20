@@ -62,6 +62,11 @@ namespace ZVSTelegramBot.Infrastructure.DataAccess
                 }
                 catch (JsonException)
                 {
+                    var errorFolder = Path.Combine(_storagePath, "ErrorFiles"); //не знаю как еще, но пусть лежит в отдельной папке
+                    Directory.CreateDirectory(errorFolder);
+                    var fileName = Path.GetFileName(filePath);
+                    var destPath = Path.Combine(errorFolder, fileName);
+                    File.Move(filePath, destPath);
                     continue;
                 }
             }

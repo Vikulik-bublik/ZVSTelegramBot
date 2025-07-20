@@ -40,7 +40,7 @@ namespace ZVSTelegramBot.Core.Services
                 User = user,
                 Name = name,
                 List = list,
-                CreatedAt = DateTime.UtcNow.AddHours(3),
+                CreatedAt = DateTime.Now,
                 Deadline = deadline,
                 State = ToDoItemState.Active
             };
@@ -54,7 +54,7 @@ namespace ZVSTelegramBot.Core.Services
             if (item != null)
             {
                 item.State = ToDoItemState.Completed;
-                item.StateChangedAt = DateTime.UtcNow.AddHours(3);
+                item.StateChangedAt = DateTime.Now;
                 await _toDoRepository.Update(item, ct);
             }
         }

@@ -27,7 +27,8 @@ namespace ZVSTelegramBot
             var reportService = new ToDoReportService(toDoRepository);
             var userService = new UserService(userRepository);
             var toDoService = new ToDoService(toDoRepository);
-            var toDoListService = new ToDoListService(listsStoragePath);
+            var repository = new FileToDoListRepository("path/to/storage");
+            var toDoListService = new ToDoListService(repository);
             //сценарии
             var contextRepository = new InMemoryScenarioContextRepository();
             var scenarios = new List<IScenario>
