@@ -21,23 +21,29 @@ namespace ZVSTelegramBot
             var userRepository = new FileUserRepository(usersStoragePath);
             var storagePath = Path.Combine(Environment.CurrentDirectory, "ToDoItems");
             var toDoRepository = new FileToDoRepository(storagePath);
+            var listsStoragePath = Path.Combine(Environment.CurrentDirectory, "ToDoLists");
+            var toDoListRepository = new FileToDoListRepository(listsStoragePath);
             //сервисы
             var reportService = new ToDoReportService(toDoRepository);
             var userService = new UserService(userRepository);
             var toDoService = new ToDoService(toDoRepository);
+            var repository = new FileToDoListRepository("path/to/storage");
+            var toDoListService = new ToDoListService(repository);
             //сценарии
             var contextRepository = new InMemoryScenarioContextRepository();
             var scenarios = new List<IScenario>
             {
-                new AddTaskScenario(userService, toDoService)
+                new AddTaskScenario(userService, toDoService, toDoListService),
+                new AddListScenario(userService, toDoListService),
+                new DeleteListScenario(userService, toDoListService, toDoService)
             };
             //настройка обновлений
             var receiverOptions = new ReceiverOptions
             {
-                AllowedUpdates = [UpdateType.Message],
+                AllowedUpdates = Array.Empty<UpdateType>(),
                 DropPendingUpdates = true
             };
-            var handler = new UpdateHandler(userService, toDoService, reportService, scenarios, contextRepository);
+            var handler = new UpdateHandler(userService, toDoService, reportService, scenarios, toDoListService, contextRepository);
             string token = Environment.GetEnvironmentVariable("TELEGRAM_CsharpBOT_TOKEN", EnvironmentVariableTarget.User);
             if (string.IsNullOrEmpty(token))
             {
@@ -53,8 +59,7 @@ namespace ZVSTelegramBot
                 new() { Command = "addtask", Description = "Добавление задачи" },
                 new() { Command = "removetask", Description = "Удаление задачи" },
                 new() { Command = "completetask", Description = "Отметить задачу выполненной" },
-                new() { Command = "showtasks", Description = "Показать активные задачи" },
-                new() { Command = "showalltasks", Description = "Показать все задачи" },
+                new() { Command = "show", Description = "Показать списки с задачами" },
                 new() { Command = "report", Description = "Статистика по задачам" },
                 new() { Command = "find", Description = "Поиск задачи по префиксу" },
                 new() { Command = "help", Description = "Помощь по командам" },

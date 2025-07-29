@@ -29,4 +29,11 @@ namespace ZVSTelegramBot.Core.Exceptions
         {
         }
     }
+    public class ListNotFoundException : Exception
+    {
+        public ListNotFoundException(Guid listId)
+            : base($"Список с ID {listId} не найден")
+        {
+        }
+    }
 }
