@@ -34,6 +34,7 @@ namespace ZVSTelegramBot
             var scenarios = new List<IScenario>
             {
                 new AddTaskScenario(userService, toDoService, toDoListService),
+                new DeleteTaskScenario(userService, toDoService),
                 new AddListScenario(userService, toDoListService),
                 new DeleteListScenario(userService, toDoListService, toDoService)
             };
@@ -57,8 +58,6 @@ namespace ZVSTelegramBot
             {
                 new() { Command = "start", Description = "Начать работу с ботом/заново установить лимиты для задач" },
                 new() { Command = "addtask", Description = "Добавление задачи" },
-                new() { Command = "removetask", Description = "Удаление задачи" },
-                new() { Command = "completetask", Description = "Отметить задачу выполненной" },
                 new() { Command = "show", Description = "Показать списки с задачами" },
                 new() { Command = "report", Description = "Статистика по задачам" },
                 new() { Command = "find", Description = "Поиск задачи по префиксу" },

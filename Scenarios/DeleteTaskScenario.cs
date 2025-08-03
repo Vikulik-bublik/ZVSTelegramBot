@@ -6,27 +6,24 @@ using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.ReplyMarkups;
 using ZVSTelegramBot.Core.Entities;
 using ZVSTelegramBot.Core.Services;
 using ZVSTelegramBot.DTO;
 
 namespace ZVSTelegramBot.Scenarios
 {
-    public class DeleteListScenario : IScenario
+    public class DeleteTaskScenario : IScenario
     {
         private readonly IUserService _userService;
-        private readonly IToDoListService _toDoListService;
         private readonly IToDoService _toDoService;
 
-        public DeleteListScenario(IUserService userService, IToDoListService toDoListService, IToDoService toDoService)
+        public DeleteTaskScenario(IUserService userService, IToDoService toDoService)
         {
             _userService = userService;
-            _toDoListService = toDoListService;
             _toDoService = toDoService;
         }
 
-        public bool CanHandle(ScenarioType scenario) => scenario == ScenarioType.DeleteList;
+        public bool CanHandle(ScenarioType scenario) => scenario == ScenarioType.DeleteTask;
 
         public async Task<ScenarioResult> HandleMessageAsync(ITelegramBotClient bot, ScenarioContext context, Update update, CancellationToken ct)
         {
@@ -37,11 +34,8 @@ namespace ZVSTelegramBot.Scenarios
                     case null:
                         return await HandleInitial(bot, context, update, ct);
 
-                    case "Approve":
-                        return await HandleApprove(bot, context, update, ct);
-
-                    case "Delete":
-                        return await HandleDelete(bot, context, update, ct);
+                    case "Confirm":
+                        return await HandleConfirm(bot, context, update, ct);
 
                     default:
                         await bot.SendMessage(update.Message.Chat, "Неизвестный шаг сценария. Сброс...", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
@@ -63,42 +57,34 @@ namespace ZVSTelegramBot.Scenarios
                 await bot.SendMessage(update.Message.Chat, "Пользователь не найден.  Пожалуйста, зарегистрируйтесь с помощью /start", replyMarkup: Helper.GetUnauthorizedKeyboard(), cancellationToken: ct);
                 return ScenarioResult.Completed;
             }
-            context.Data["User"] = user;
-            var lists = await _toDoListService.GetUserLists(user.UserId, ct);
-            if (lists.Count == 0)
-            {
-                await bot.SendMessage(update.Message.Chat, "У вас нет списков для удаления", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
-                return ScenarioResult.Completed;
-            }
-            await bot.SendMessage(update.Message.Chat, "Выберите список для удаления:", replyMarkup: Helper.GetListsKeyboard(lists, "DeleteList"), cancellationToken: ct);
-            context.CurrentStep = "Approve";
-            return ScenarioResult.Transition;
-        }
 
-        private async Task<ScenarioResult> HandleApprove(ITelegramBotClient bot, ScenarioContext context, Update update, CancellationToken ct)
-        {
             if (update.CallbackQuery == null)
             {
-                await HandleInitial(bot, context, update, ct);
-                return ScenarioResult.Transition;
-            }
-
-            var callbackDto = ToDoListCallbackDto.FromString(update.CallbackQuery.Data);
-            var list = await _toDoListService.Get(callbackDto.ToDoListId.Value, ct);
-
-            if (list == null)
-            {
-                await bot.SendMessage(update.Message.Chat, "Список не найден", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
+                await bot.SendMessage(update.Message.Chat, "Неверный запрос, выберите задачу для удаления.", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
                 return ScenarioResult.Completed;
             }
 
-            context.Data["List"] = list;
-            context.CurrentStep = "Delete";
+            var callbackDto = ToDoItemCallbackDto.FromString(update.CallbackQuery.Data);
+            if (!callbackDto.ToDoItemId.HasValue)
+            {
+                await bot.AnswerCallbackQuery(update.CallbackQuery.Id, "Ошибка, ID задачи не указан", cancellationToken: ct);
+                return ScenarioResult.Completed;
+            }
+
+            var task = await _toDoService.Get(callbackDto.ToDoItemId.Value, ct);
+            if (task == null)
+            {
+                await bot.AnswerCallbackQuery(update.CallbackQuery.Id, "Задача не найдена", cancellationToken: ct);
+                return ScenarioResult.Completed;
+            }
+
+            context.Data["Task"] = task;
+            context.CurrentStep = "Confirm";
 
             await bot.EditMessageText(
-                update.CallbackQuery.Message.Chat,
-                update.CallbackQuery.Message.MessageId,
-                $"Подтверждаете удаление списка <b>{list.Name}</b> и всех его задач",
+                chatId: update.CallbackQuery.Message.Chat,
+                messageId: update.CallbackQuery.Message.MessageId,
+                text: $"Вы уверены, что хотите удалить задачу: <b>{Helper.EscapeMarkdownV2(task.Name)}</b>?",
                 parseMode: ParseMode.Html,
                 replyMarkup: Helper.GetYesNoKeyboard(),
                 cancellationToken: ct);
@@ -107,21 +93,25 @@ namespace ZVSTelegramBot.Scenarios
             return ScenarioResult.Transition;
         }
 
-        private async Task<ScenarioResult> HandleDelete(ITelegramBotClient bot, ScenarioContext context, Update update, CancellationToken ct)
+        private async Task<ScenarioResult> HandleConfirm(ITelegramBotClient bot, ScenarioContext context, Update update, CancellationToken ct)
         {
             if (update.CallbackQuery?.Data == null)
             {
-                await bot.SendMessage(update.Message.Chat, "Неверный формат запроса", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
+                await bot.SendMessage(update.Message?.Chat, "Неверный формат запроса", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
                 return ScenarioResult.Completed;
             }
 
             var response = update.CallbackQuery.Data;
-            var user = (ToDoUser)context.Data["User"];
-            var list = (ToDoList)context.Data["List"];
+            var task = (ToDoItem)context.Data["Task"];
 
             if (response == "no")
             {
-                await bot.EditMessageText(update.CallbackQuery.Message.Chat, update.CallbackQuery.Message.MessageId, "Удаление отменено", replyMarkup: null, cancellationToken: ct);
+                await bot.EditMessageText(
+                    update.CallbackQuery.Message.Chat,
+                    update.CallbackQuery.Message.MessageId,
+                    "Удаление отменено",
+                    replyMarkup: null,
+                    cancellationToken: ct);
                 await bot.AnswerCallbackQuery(update.CallbackQuery.Id, cancellationToken: ct);
                 return ScenarioResult.Completed;
             }
@@ -130,14 +120,13 @@ namespace ZVSTelegramBot.Scenarios
             {
                 try
                 {
-                    var tasks = await _toDoService.GetByUserIdAndList(user.UserId, list.Id, ct);
-                    foreach (var task in tasks)
-                    {
-                        await _toDoService.Delete(task.Id, ct);
-                    }
-
-                    await _toDoListService.Delete(list.Id, ct);
-                    await bot.EditMessageText(update.CallbackQuery.Message.Chat, update.CallbackQuery.Message.MessageId, $"Список <b>{list.Name}</b> и все его задачи: <b>{tasks.Count}</b> успешно удалены", parseMode: ParseMode.Html, cancellationToken: ct);
+                    await _toDoService.Delete(task.Id, ct);
+                    await bot.EditMessageText(
+                        update.CallbackQuery.Message.Chat,
+                        update.CallbackQuery.Message.MessageId,
+                        $"Задача <b>{Helper.EscapeMarkdownV2(task.Name)}</b> успешно удалена",
+                        parseMode: ParseMode.Html,
+                        cancellationToken: ct);
                 }
                 catch (Exception ex)
                 {
@@ -147,8 +136,6 @@ namespace ZVSTelegramBot.Scenarios
                         $"❌ Ошибка при удалении: {ex.Message}",
                         replyMarkup: null,
                         cancellationToken: ct);
-
-                    return ScenarioResult.Completed;
                 }
                 finally
                 {
@@ -156,11 +143,10 @@ namespace ZVSTelegramBot.Scenarios
                 }
                 return ScenarioResult.Completed;
             }
-
-            await bot.SendMessage(update.Message.Chat, "Неизвестная команда", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
-
+            await bot.SendMessage( update.Message.Chat, "Неизвестная команда", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
             return ScenarioResult.Completed;
         }
+
         private async Task HandleScenarioError(ITelegramBotClient bot, Update update, Exception ex, CancellationToken ct)
         {
             await bot.SendMessage(update.Message.Chat, $"Произошла ошибка: {ex.Message}", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);

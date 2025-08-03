@@ -11,6 +11,10 @@ public static class Helper
     private const string DeleteListButtonText = "❌ Удалить список";
     private const string NoListButtonText = "📌 Без списка";
     private const string SkipButtonText = "⏩ Пропустить";
+    private const string CompleteTaskButtonText = "✅ Выполнить";
+    private const string DeleteTaskButtonText = "❌ Удалить";
+    public const string ViewCompletedButtonText = "☑️ Посмотреть выполненные";
+    public const string BackToActiveButtonText = "⬅️ К активным задачам";
     //метод валидации ввода
     public static Task ValidateString(string? str, CancellationToken ct = default)
     {
@@ -66,35 +70,38 @@ public static class Helper
         });
     }
     //кнопки для выбора списка
-    public static InlineKeyboardMarkup GetListSelectionKeyboard(List<ToDoList>lists, List<ToDoItem> tasksWithoutList, bool hideManagementButtons = false)
+    public static InlineKeyboardMarkup GetListSelectionKeyboard(List<ToDoList> lists, List<ToDoItem> tasksWithoutList, bool hideManagementButtons = false)
     {
-
         var buttons = new List<InlineKeyboardButton[]>();
 
-        //кнопка для задач без списка
+        //кнопка Без списка
         buttons.Add(new[]
         {
-            InlineKeyboardButton.WithCallbackData(
-                NoListButtonText,
-                new ToDoListCallbackDto { Action = "show", ToDoListId = null }.ToString())
-        });
+        InlineKeyboardButton.WithCallbackData(
+            NoListButtonText,
+            new ToDoListCallbackDto { Action = "show", ToDoListId = null }.ToString())
+    });
 
-        //кнопки списков
+        //кнопки для каждого списка
         buttons.AddRange(lists.Select(list => new[]
         {
-            InlineKeyboardButton.WithCallbackData(
-                list.Name,
-                new ToDoListCallbackDto { Action = "show", ToDoListId = list.Id }.ToString())
-        }));
+        InlineKeyboardButton.WithCallbackData(
+            list.Name,
+            new ToDoListCallbackDto { Action = "show", ToDoListId = list.Id }.ToString())
+    }));
 
-        //кнопки добавления-удаления
+        //кнопки добавить-удалить список
         if (!hideManagementButtons)
         {
             buttons.Add(new[]
             {
-                InlineKeyboardButton.WithCallbackData(AddListButtonText, new ToDoListCallbackDto { Action = "addlist" }.ToString()),
-                InlineKeyboardButton.WithCallbackData(DeleteListButtonText, new ToDoListCallbackDto { Action = "deletelist" }.ToString())
-            });
+            InlineKeyboardButton.WithCallbackData(
+                AddListButtonText,
+                new ToDoListCallbackDto { Action = "addlist" }.ToString()),
+            InlineKeyboardButton.WithCallbackData(
+                DeleteListButtonText,
+                new ToDoListCallbackDto { Action = "deletelist" }.ToString())
+        });
         }
 
         return new InlineKeyboardMarkup(buttons);
@@ -121,6 +128,20 @@ public static class Helper
             InlineKeyboardButton.WithCallbackData("Да", "yes"),
             InlineKeyboardButton.WithCallbackData("Нет", "no")
         }
+        });
+    }
+    //кнопки завершить-удалить задачу
+    public static InlineKeyboardMarkup GetTaskActionsKeyboard(Guid taskId)
+    {
+        return new InlineKeyboardMarkup(new[]
+        {
+            new[]
+            {
+                InlineKeyboardButton.WithCallbackData(CompleteTaskButtonText,
+                new ToDoItemCallbackDto { Action = "completetask", ToDoItemId = taskId }.ToString()),
+                InlineKeyboardButton.WithCallbackData(DeleteTaskButtonText,
+                new ToDoItemCallbackDto { Action = "deletetask", ToDoItemId = taskId }.ToString())
+            }
         });
     }
     //экранируем спецсимволы, иначе вылетает ошибка у Бота
