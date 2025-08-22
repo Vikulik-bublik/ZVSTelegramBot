@@ -18,5 +18,6 @@ namespace ZVSTelegramBot.Core.Services
         Task Delete(Guid id, CancellationToken ct);
         Task<IReadOnlyList<ToDoItem>> GetAllTasks(Guid userId, CancellationToken ct);
         Task<IReadOnlyList<ToDoItem>> GetByUserIdAndList(Guid userId, Guid? listId, CancellationToken ct);
+        Task<ToDoItem?> Get(Guid toDoItemId, CancellationToken ct);
     }
 }

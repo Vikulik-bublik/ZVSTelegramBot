@@ -10,6 +10,7 @@ namespace ZVSTelegramBot.Scenarios
         None,
         AddTask,
         AddList,
-        DeleteList
+        DeleteList,
+        DeleteTask
     }
 }

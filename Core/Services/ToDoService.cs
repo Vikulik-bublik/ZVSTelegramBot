@@ -49,9 +49,10 @@ namespace ZVSTelegramBot.Core.Services
         }
         public async Task MarkCompleted(Guid id, Guid userId, CancellationToken ct)
         {
-            var tasks = await _toDoRepository.GetAllByUserId(userId, ct);
-            var item = tasks.FirstOrDefault(i => i.Id == id);
-            if (item != null)
+            var item = await _toDoRepository.GetByIdAsync(id, ct);
+            if (item == null)
+                throw new TaskNotFoundException(id);
+            if (item != null && item.User.UserId == userId)
             {
                 item.State = ToDoItemState.Completed;
                 item.StateChangedAt = DateTime.Now;
@@ -76,6 +77,10 @@ namespace ZVSTelegramBot.Core.Services
             return listId == null
             ? allTasks.Where(t => t.List == null).ToList()
             : allTasks.Where(t => t.List?.Id == listId).ToList();
+        }
+        public async Task<ToDoItem?> Get(Guid toDoItemId, CancellationToken ct)
+        {
+            return await _toDoRepository.GetByIdAsync(toDoItemId, ct);
         }
     }
 }
