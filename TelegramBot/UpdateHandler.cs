@@ -240,7 +240,7 @@ namespace ZVSTelegramBot.TelegramBot
                 var lists = await _toDoListService.GetUserLists(userId, ct);
                 var (_, tasksWithoutList) = await GetFormattedTasksList(userId, null, ct);
 
-                var keyboard = Helper.GetListSelectionKeyboard((List<ToDoList>)lists, tasksWithoutList);
+                var keyboard = Helper.GetListSelectionKeyboard(lists, tasksWithoutList);
 
                 await botClient.SendMessage(update.Message.Chat, "Выберите список:", replyMarkup: keyboard, cancellationToken: ct);
             }

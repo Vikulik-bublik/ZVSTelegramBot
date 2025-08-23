@@ -70,7 +70,7 @@ public static class Helper
         });
     }
     //кнопки для выбора списка
-    public static InlineKeyboardMarkup GetListSelectionKeyboard(List<ToDoList> lists, List<ToDoItem> tasksWithoutList, bool hideManagementButtons = false)
+    public static InlineKeyboardMarkup GetListSelectionKeyboard(IReadOnlyList<ToDoList> lists, List<ToDoItem> tasksWithoutList, bool hideManagementButtons = false)
     {
         var buttons = new List<InlineKeyboardButton[]>();
 
@@ -103,7 +103,6 @@ public static class Helper
                 new ToDoListCallbackDto { Action = "deletelist" }.ToString())
         });
         }
-
         return new InlineKeyboardMarkup(buttons);
     }
     //кнопка для удаления списка
