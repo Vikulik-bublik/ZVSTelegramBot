@@ -11,6 +11,7 @@ namespace ZVSTelegramBot.Scenarios
         public ScenarioType CurrentScenario { get; }
         public string? CurrentStep { get; set; }
         public Dictionary<string, object> Data { get; set; } = new();
+        public DateTime CreatedAt { get; } = DateTime.UtcNow;
 
         public ScenarioContext(long userId, ScenarioType scenario)
         {

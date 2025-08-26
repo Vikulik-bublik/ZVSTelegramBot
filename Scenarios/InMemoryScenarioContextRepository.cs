@@ -28,5 +28,10 @@ namespace ZVSTelegramBot.Scenarios
             _contexts.TryRemove(userId, out _);
             return Task.CompletedTask;
         }
+        public Task<IReadOnlyList<ScenarioContext>> GetContexts(CancellationToken ct)
+        {
+            IReadOnlyList<ScenarioContext> contexts = _contexts.Values.ToList();
+            return Task.FromResult(contexts);
+        }
     }
 }

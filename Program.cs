@@ -5,6 +5,7 @@ using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using ZVSTelegramBot.BackgroundTasks;
 using ZVSTelegramBot.Core;
 using ZVSTelegramBot.Core.DataAccess;
 using ZVSTelegramBot.Core.Services;
@@ -31,7 +32,7 @@ namespace ZVSTelegramBot
             string token = Environment.GetEnvironmentVariable("TELEGRAM_CsharpBOT_TOKEN", EnvironmentVariableTarget.User);
             if (string.IsNullOrEmpty(token))
             {
-                Console.WriteLine("Токен бота не найденв переменных окружения");
+                Console.WriteLine("Токен бота не найден в переменных окружения");
                 return;
             }
             //создаем фабрику контекста данных
@@ -73,6 +74,13 @@ namespace ZVSTelegramBot
 
             //зависимости
             var contextRepository = new InMemoryScenarioContextRepository();
+            
+            //создаем BackgroundTaskRunner
+            var backgroundTaskRunner = new BackgroundTaskRunner();
+
+            //добавляем фоновые задачи через AddTask
+            var resetScenarioTimeout = TimeSpan.FromHours(1);
+            backgroundTaskRunner.AddTask(new ResetScenarioBackgroundTask(resetScenarioTimeout, contextRepository, new TelegramBotClient(token)));
 
             //настройка обновлений
             var receiverOptions = new ReceiverOptions
@@ -99,6 +107,10 @@ namespace ZVSTelegramBot
             
             try
             {
+                //запускаем фоновые задачи
+                backgroundTaskRunner.StartTasks(cts.Token);
+                Console.WriteLine("Фоновые задачи запущены");
+
                 await botClient.SetMyCommands(commands, cancellationToken: cts.Token);
                 
                 //подписываемся
@@ -135,6 +147,20 @@ namespace ZVSTelegramBot
             }
             finally
             {
+                //останавливаем фоновые задачи
+                try
+                {
+                    await backgroundTaskRunner.StopTasks(CancellationToken.None);
+                    Console.WriteLine("Фоновые задачи остановлены");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ошибка при остановке фоновых задач: {ex.Message}");
+                }
+
+                //освобождаем ресурсы
+                backgroundTaskRunner.Dispose();
+
                 //отписываемся
                 handler.OnHandleUpdateStarted -= message =>
                     Console.WriteLine($"Началась обработка сообщения '{message}'.");
