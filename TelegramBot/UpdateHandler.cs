@@ -161,7 +161,7 @@ namespace ZVSTelegramBot.TelegramBot
             switch (command)
             {
                 case "/info":
-                    await botClient.SendMessage(update.Message.Chat, "Вот информация о боте. \nДата создания: 23.02.2025. Версия: 3.3.1 от 03.08.2025", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
+                    await botClient.SendMessage(update.Message.Chat, "Вот информация о боте. \nДата создания: 23.02.2025. Версия: 3.3.3 от 26.08.2025", replyMarkup: Helper.GetAuthorizedKeyboard(), cancellationToken: ct);
                     break;
                 case "/help":
                     await Help(botClient, update, ct);
@@ -189,7 +189,7 @@ namespace ZVSTelegramBot.TelegramBot
             if (command == "/info" || command == "/help")
             {
                 if (command == "/info")
-                    await botClient.SendMessage(update.Message.Chat, "Вот информация о боте. \nДата создания: 23.02.2025. Версия: 3.3.1 от 03.08.2025" +
+                    await botClient.SendMessage(update.Message.Chat, "Вот информация о боте. \nДата создания: 23.02.2025. Версия: 3.3.3 от 26.08.2025" +
                         "\nПожалуйста, зарегистрируйтесь, нажав кнопку /start", replyMarkup: Helper.GetUnauthorizedKeyboard(), cancellationToken: ct);
 
                 if (command == "/help")
