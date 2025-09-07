@@ -39,5 +39,11 @@ namespace ZVSTelegramBot.Infrastructure.DataAccess
             var userModel = ModelMapper.MapToModel(user);
             await dbContext.UpdateAsync(userModel, token: ct);
         }
+        public async Task<IReadOnlyList<ToDoUser>> GetUsers(CancellationToken ct)
+        {
+            using var dbContext = _contextFactory.CreateDataContext();
+            var userModels = await dbContext.ToDoUsers.ToListAsync(ct);
+            return userModels.Select(ModelMapper.MapFromModel).ToList().AsReadOnly();
+        }
     }
 }

@@ -13,5 +13,6 @@ namespace ZVSTelegramBot.Core.DataAccess
         Task<ToDoUser?> GetUserByTelegramUserId(long telegramUserId, CancellationToken ct);
         Task Add(ToDoUser user, CancellationToken ct);
         Task UpdateUser(ToDoUser user, CancellationToken ct);
+        Task<IReadOnlyList<ToDoUser>> GetUsers(CancellationToken ct);
     }
 }
