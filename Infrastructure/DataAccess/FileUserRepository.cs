@@ -98,5 +98,25 @@ namespace ZVSTelegramBot.Infrastructure.DataAccess
                 throw new RepositoryException($"Не удалось обновить данные пользователя {user.UserId}", ex);
             }
         }
+        public async Task<IReadOnlyList<ToDoUser>> GetUsers(CancellationToken ct)
+        {
+            var users = new List<ToDoUser>();
+            foreach (var filePath in Directory.EnumerateFiles(_storagePath, "*.json"))
+            {
+                ct.ThrowIfCancellationRequested();
+                try
+                {
+                    await using var fileStream = File.OpenRead(filePath);
+                    var user = await JsonSerializer.DeserializeAsync<ToDoUser>(fileStream, _jsonOptions, ct);
+                    if (user != null)
+                        users.Add(user);
+                }
+                catch (JsonException)
+                {
+                    continue;
+                }
+            }
+            return users.AsReadOnly();
+        }
     }
 }

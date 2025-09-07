@@ -18,5 +18,6 @@ namespace ZVSTelegramBot.Core.DataAccess
         Task<bool> ExistsByName(Guid userId, string name, CancellationToken ct);
         Task<int> CountActive(Guid userId, CancellationToken ct);
         Task<ToDoItem?> GetByIdAsync(Guid id, CancellationToken ct);
+        Task<IReadOnlyList<ToDoItem>> GetActiveWithDeadline(Guid userId, DateTime from, DateTime to, CancellationToken ct);
     }
 }

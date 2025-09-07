@@ -9,6 +9,7 @@ using ZVSTelegramBot.BackgroundTasks;
 using ZVSTelegramBot.Core;
 using ZVSTelegramBot.Core.DataAccess;
 using ZVSTelegramBot.Core.Services;
+using ZVSTelegramBot.Infrastructure;
 using ZVSTelegramBot.Infrastructure.DataAccess;
 using ZVSTelegramBot.Scenarios;
 using ZVSTelegramBot.TelegramBot;
@@ -63,6 +64,7 @@ namespace ZVSTelegramBot
             var userService = new UserService(userRepository);
             var toDoService = new ToDoService(toDoRepository);
             var toDoListService = new ToDoListService(toDoListRepository);
+            var notificationService = new NotificationService(contextFactory);
 
             //сценарии
             var scenarios = new List<IScenario>
@@ -78,13 +80,15 @@ namespace ZVSTelegramBot
 
             //создаем BackgroundTaskRunner
             using var backgroundTaskRunner = new BackgroundTaskRunner();
-            //var backgroundTaskRunner = new BackgroundTaskRunner();
 
             //добавляем фоновые задачи через AddTask
             var resetScenarioTimeout = TimeSpan.FromHours(1);
             var botClient = new TelegramBotClient(token);
 
             backgroundTaskRunner.AddTask(new ResetScenarioBackgroundTask(resetScenarioTimeout, contextRepository, botClient));
+            backgroundTaskRunner.AddTask(new NotificationBackgroundTask(notificationService, botClient));
+            backgroundTaskRunner.AddTask(new DeadlineBackgroundTask(notificationService, userRepository, toDoRepository));
+            backgroundTaskRunner.AddTask(new TodayBackgroundTask(notificationService, userRepository, toDoRepository));
 
             //настройка обновлений
             var receiverOptions = new ReceiverOptions

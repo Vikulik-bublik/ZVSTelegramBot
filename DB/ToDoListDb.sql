@@ -29,6 +29,18 @@ CREATE TABLE "ToDoItem"
     "ListId" UUID NULL
 );
 
+-- Создание таблицы уведомлений
+CREATE TABLE "Notifications" 
+(
+    "Id" UUID PRIMARY KEY,
+    "UserId" UUID NOT NULL,
+    "Type" VARCHAR(100) NOT NULL,
+    "Text" VARCHAR(500) NOT NULL,
+    "ScheduledAt" TIMESTAMP NOT NULL,
+    "IsNotified" BOOLEAN NOT NULL DEFAULT FALSE,
+    "NotifiedAt" TIMESTAMP NULL
+);
+
 -- Создание внешних ключей:
 
 -- Внешний ключ: ToDoList.UserId -> ToDoUser.UserId
@@ -51,6 +63,13 @@ ADD CONSTRAINT "FK_ToDoItem_ToDoList"
 FOREIGN KEY ("ListId") 
 REFERENCES "ToDoList"("Id") 
 ON DELETE SET NULL;
+
+-- Внешний ключ: Notifications.UserId -> ToDoUser.UserId
+ALTER TABLE "Notifications" 
+ADD CONSTRAINT "FK_Notifications_ToDoUser" 
+FOREIGN KEY ("UserId") 
+REFERENCES "ToDoUser"("UserId") 
+ON DELETE CASCADE;
 
 -- Создание индексов:
 
@@ -75,3 +94,15 @@ ON "ToDoItem"("ListId");
 -- Индекс для поиска задач по статусу
 CREATE INDEX "IX_ToDoItem_State" 
 ON "ToDoItem"("State");
+
+-- Индекс для UserId (для быстрого поиска уведомлений пользователя)
+CREATE INDEX "IX_Notifications_UserId" 
+ON "Notifications"("UserId");
+
+-- Индекс для ScheduledAt и IsNotified (для поиска уведомлений, которые нужно отправить)
+CREATE INDEX "IX_Notifications_ScheduledAt_IsNotified" 
+ON "Notifications"("ScheduledAt", "IsNotified");
+
+-- Индекс для Type (если планируется часто искать уведомления по типу)
+CREATE INDEX "IX_Notifications_Type" 
+ON "Notifications"("Type");

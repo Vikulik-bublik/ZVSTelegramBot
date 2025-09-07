@@ -92,5 +92,36 @@ namespace ZVSTelegramBot.Infrastructure.DataAccess
                 User = MapToModel(entity.User)
             };
         }
+
+        public static Notification MapFromModel(NotificationModel model)
+        {
+            if (model == null) return null;
+            return new Notification
+            {
+                Id = model.Id,
+                User = MapFromModel(model.User),
+                Type = model.Type,
+                Text = model.Text,
+                ScheduledAt = model.ScheduledAt,
+                IsNotified = model.IsNotified,
+                NotifiedAt = model.NotifiedAt
+            };
+        }
+
+        public static NotificationModel MapToModel(Notification entity)
+        {
+            if (entity == null) return null;
+            return new NotificationModel
+            {
+                Id = entity.Id,
+                UserId = entity.User?.UserId ?? Guid.Empty,
+                Type = entity.Type,
+                Text = entity.Text,
+                ScheduledAt = entity.ScheduledAt,
+                IsNotified = entity.IsNotified,
+                NotifiedAt = entity.NotifiedAt,
+                User = MapToModel(entity.User)
+            };
+        }
     }
 }

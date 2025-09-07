@@ -196,5 +196,16 @@ namespace ZVSTelegramBot.Infrastructure.DataAccess
                 throw new TaskNotFoundException(taskId);
             return Path.Combine(GetUserDirectoryPath(userId), $"{taskId}.json");
         }
+        public async Task<IReadOnlyList<ToDoItem>> GetActiveWithDeadline(Guid userId, DateTime from, DateTime to, CancellationToken ct)
+        {
+            var allTasks = await GetAllByUserId(userId, ct);
+            return allTasks
+                .Where(t => t.State == ToDoItemState.Active
+                            && t.Deadline.HasValue
+                            && t.Deadline.Value >= from
+                            && t.Deadline.Value < to)
+                .ToList()
+                .AsReadOnly();
+        }
     }
 }
